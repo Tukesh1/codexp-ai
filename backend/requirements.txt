@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+python-jose[cryptography]
+requests
+openai
+python-dotenv
+stripe
+httpx
+pydantic>=2.0
+pydantic-settings>=2.0

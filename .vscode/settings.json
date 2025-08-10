@@ -1,0 +1,4 @@
+// Required for Tailwind IntelliSense to find styles in monorepo
+{
+  "tailwindCSS.experimental.configFile": "packages/ui/src/styles/globals.css"
+}

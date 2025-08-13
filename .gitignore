@@ -30,7 +30,10 @@ dist
 
 # Debug
 npm-debug.log*
+.cursor
+.vscode
 
 # Misc
 .DS_Store
 *.pem
+RUN_INSTRUCTIONS.md

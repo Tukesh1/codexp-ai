@@ -1,181 +1,252 @@
-# Omni-SaaS — AI SaaS Starter Monorepo ⚡
+# CodeExp AI
 
-**Omni-SaaS** is a scalable and MVP-friendly AI SaaS starter template built with a modern full-stack tech stack. It’s designed for rapid development, structured growth, and easy deployment.
+> Automated codebase analysis and documentation platform powered by AI
 
----
+CodeExp AI is a comprehensive platform that automatically analyzes codebases, generates documentation, creates dependency diagrams, and provides intelligent Q&A capabilities for software repositories.
 
-## 🔧 Tech Stack
+## 🚀 Features
 
-**Frontend**
-- [Next.js 14+ (App Router)](https://nextjs.org/)
-- [Tailwind CSS](https://tailwindcss.com/)
-- [TypeScript](https://www.typescriptlang.org/)
-- [Vercel Hosting](https://vercel.com/)
+- **Automatic Code Analysis**: Parse and understand codebases using tree-sitter
+- **AI-Powered Summaries**: Generate function/class summaries and documentation
+- **Intelligent Q&A**: Ask questions about your codebase and get grounded answers
+- **Visual Diagrams**: Create dependency graphs and call diagrams
+- **Multi-Language Support**: Python, JavaScript/TypeScript, Go, C++, and more
+- **Real-time Processing**: Track analysis progress with live updates
+- **Export Capabilities**: Generate documentation in multiple formats
 
-**Backend**
-- [FastAPI](https://fastapi.tiangolo.com/)
-- [Supabase Auth](https://supabase.com/)
-- [Stripe](https://stripe.com/) for billing
-- [Hugging Face](https://huggingface.co/) or OpenAI API for AI services
-- [Railway](https://railway.app/) or Fly.io for backend hosting
+## 🏗️ Architecture
 
-**Tooling**
-- [PNPM Workspaces](https://pnpm.io/)
-- [Turborepo](https://turbo.build/repo)
-- [Docker Compose](https://docs.docker.com/compose/)
+### Tech Stack
 
----
+- **Frontend**: React 18 + TypeScript + Tailwind CSS + shadcn/ui
+- **Backend API**: Go (Gin framework) with JWT authentication
+- **AI Service**: Python (FastAPI) + Hugging Face Transformers
+- **Database**: PostgreSQL with pgvector extension
+- **Cache & Jobs**: Redis for job queues and caching
+- **Infrastructure**: Docker + Docker Compose
 
-## 📁 Project Structure
+### Services
 
 ```
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│   Frontend  │───▶│   Go API    │───▶│ Python AI   │
+│   (React)   │    │ (Gateway)   │    │ (Analysis)  │
+└─────────────┘    └─────────────┘    └─────────────┘
+                          │                    │
+                          ▼                    ▼
+                   ┌─────────────┐    ┌─────────────┐
+                   │ PostgreSQL  │    │    Redis    │
+                   │ + pgvector  │    │ (Jobs/Cache)│
+                   └─────────────┘    └─────────────┘
+```
 
-Omni-SaaS/
-├── apps/
-│   ├── web/        # Main user dashboard (Next.js)
-│   ├── admin/      # Admin interface
-│   ├── landing/    # Marketing website
-│   └── mobile/     # (Optional) Mobile app (Expo)
-│
-│   backend/
-│   │
-│   ├── app/
-│   │   ├── api/                  # All route controllers
-│   │   │   ├── v1/
-│   │   │   │   ├── endpoints/
-│   │   │   │   │   ├── auth.py           # (optional auth)
-│   │   │   │   │   └── payment.py        # Stripe webhooks
-│   │   │   │   └── __init__.py
-│   │   │   └── __init__.py
-│   │   │
-│   │   ├── core/                # Config & startup logic
-│   │   │   ├── config.py
-│   │   │   ├── security.py
-│   │   │   └── prompt.py        # AI prompt templates
-│   │   │
-│   │   ├── services/            # Business logic
-│   │   │   ├── gpt_client.py
-│   │   │   ├── stripe_service.py
-│   │   │   └── __init__.py
-│   │   │
-│   │   ├── models/              # Pydantic models
-│   │   │   ├── user.py
-│   │   │   └── __init__.py
-│   │   │
-│   │   ├── db/                  # Optional: DB connection logic
-│   │   │   └── database.py
-│   │   │
-│   │   └── main.py              # FastAPI app entry point
-│   │
-│   ├── tests/                   # Unit & integration tests
-│   │   └── test_user.py
-│   │
-│   ├── .env                     # Environment secrets (never commit)
-│   ├── .env.example             # Sample env for local dev
-│   ├── requirements.txt         # Pip dependencies
-│   ├── README.md
-│   └── run.sh                   # Script to start dev server
-│
-├── packages/
-│   ├── ui/         # Shared UI components (used across apps)
-│   ├── utils/      # Shared utility functions
-│   └── types/      # Shared TS types
-│
-├── docker-compose.yml
-├── pnpm-workspace.yaml
-├── .env
-└── README.md
+## 🛠️ Quick Start
 
-````
+### Prerequisites
 
----
+- Docker & Docker Compose
+- Node.js 18+ with pnpm
+- Git
 
-## 🚀 Getting Started (Development)
+### Setup
 
-### 1. Clone the Repo
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/Tukesh1/codexp-ai.git
+   cd codexp-ai
+   ```
+
+2. **Run setup script**
+   ```bash
+   make setup
+   ```
+
+3. **Start development environment**
+   ```bash
+   make dev
+   ```
+
+4. **Access the application**
+   - Frontend: http://localhost:3000
+   - API: http://localhost:8080
+   - AI Service: http://localhost:8000
+
+### Manual Setup
+
+If you prefer manual setup:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/omnisaas.git
-cd omnisaas
-````
-
-### 2. Install Dependencies
-
-```bash
+# Install dependencies
 pnpm install
+
+# Create environment file
+cp .env.example .env
+
+# Start services
+docker-compose up -d
 ```
 
-### 3. Start All Apps with Docker (Local Dev)
+## 📖 Development
+
+### Project Structure
+
+```
+codexp-ai/
+├── apps/                    # Frontend applications
+│   ├── web/                # Main web application
+│   ├── admin/              # Admin dashboard
+│   ├── landing/            # Landing page
+│   └── mobile/             # Mobile app (React Native)
+├── backend/                # Backend services
+│   ├── api/                # Go API service
+│   └── ai-service/         # Python AI service
+├── packages/               # Shared packages
+│   ├── ui/                 # UI component library
+│   ├── typescript-config/  # TypeScript configurations
+│   └── eslint-config/      # ESLint configurations
+└── docker-compose.yml      # Development environment
+```
+
+### Available Commands
 
 ```bash
-docker-compose up --build
+# Development
+make dev          # Start development environment
+make logs         # View all service logs
+make ps           # Check service status
+
+# Building
+make build        # Build all Docker images
+make clean        # Clean up containers and volumes
+
+# Testing
+make test         # Run all tests
+make lint         # Run linters
+
+# Database
+make db-shell     # Connect to PostgreSQL
+make db-reset     # Reset database
 ```
 
-Or, run manually:
+### Development Workflow
 
-```bash
-# Frontend
-pnpm --filter web dev
+1. **Phase 1 (Week 1-2)**: Core infrastructure and repository parsing
+2. **Phase 2 (Week 3-4)**: AI-powered analysis and frontend
+3. **Phase 3 (Week 5-6)**: Advanced features and monetization
+4. **Phase 4 (Week 7-8)**: Production readiness and launch
 
-# Backend
-cd services/api
-uvicorn app.main:app --reload
-```
+## 🔧 Configuration
 
----
+### Environment Variables
 
-## 🔐 Environment Variables
-
-You’ll need these `.env` files:
-
-* `/services/api/.env`
-* `/apps/web/.env.local`
-* `/apps/admin/.env.local`
-* `/apps/landing/.env.local`
-
-Basic example:
+Copy `.env.example` to `.env` and configure:
 
 ```env
-# Shared
-NEXT_PUBLIC_API_URL=http://localhost:8000
+# Database
+DATABASE_URL=postgresql://codeexp:secure_password@localhost:5432/codeexp
 
-# Backend only
-SUPABASE_URL=your-supabase-url
-SUPABASE_KEY=your-supabase-key
-STRIPE_SECRET_KEY=sk_test_****
+# Authentication (Clerk)
+CLERK_SECRET_KEY=your_clerk_secret
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+
+# GitHub Integration
+GITHUB_APP_ID=your_app_id
+GITHUB_APP_PRIVATE_KEY=your_private_key
+
+# AI Service
+HUGGINGFACE_API_KEY=your_hf_token
+
+# Payments (Stripe)
+STRIPE_SECRET_KEY=your_stripe_secret
 ```
 
----
+### Docker Services
 
-## 🧱 Commands
+- **postgres**: PostgreSQL 16 with pgvector extension
+- **redis**: Redis 7 for job queues and caching
+- **api**: Go API service (port 8080)
+- **ai-service**: Python AI service (port 8000)
+- **frontend**: React application (port 3000)
 
-| Script              | Description                     |
-| ------------------- | ------------------------------- |
-| `pnpm dev`          | Run all dev servers with Turbo  |
-| `pnpm build`        | Build all packages & apps       |
-| `pnpm lint`         | Lint all code                   |
-| `docker-compose up` | Local fullstack dev with Docker |
+## 📊 API Endpoints
 
----
+### Authentication
+- `POST /auth/webhook` - Clerk webhook handler
+- `GET /auth/me` - Get current user
 
-## 📦 Deployment Plan (MVP Friendly)
+### Projects
+- `GET /projects` - List user projects
+- `POST /projects` - Create new project
+- `GET /projects/{id}` - Get project details
+- `DELETE /projects/{id}` - Delete project
 
-| Target         | Tool    | Notes                         |
-| -------------- | ------- | ----------------------------- |
-| `apps/web`     | Vercel  | Free tier is enough initially |
-| `apps/admin`   | Vercel  | Internal admin dashboard      |
-| `services/api` | Railway | FastAPI backend hosting       |
+### Analysis
+- `POST /projects/{id}/analyze` - Start repository analysis
+- `GET /projects/{id}/status` - Get analysis status
+- `GET /projects/{id}/summary` - Get project summary
+- `POST /projects/{id}/ask` - Ask questions about code
 
-> You can scale later by splitting services into `ai`, `billing`, etc.
+### Export
+- `GET /projects/{id}/diagram` - Get dependency diagram
+- `GET /projects/{id}/docs` - Get generated documentation
 
----
+## 🧪 Testing
 
-## 👥 Contributing
+```bash
+# Run all tests
+make test
 
-Want to contribute to OmniSaaS? Feel free to fork, improve, and suggest features. PRs are welcome.
+# Run specific service tests
+docker-compose exec api go test ./...
+docker-compose exec ai-service python -m pytest
 
----
+# Run frontend tests
+cd apps/web && npm test
+```
+
+## 🚀 Deployment
+
+### Production Build
+
+```bash
+# Build production images
+docker-compose -f docker-compose.prod.yml build
+
+# Deploy to production
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+### Environment Setup
+
+1. **Database**: PostgreSQL with pgvector on Railway/Supabase
+2. **Cache**: Redis Cloud/Upstash
+3. **API**: Deploy Go service to Fly.io/Render
+4. **AI Service**: Deploy Python service to Render/Railway
+5. **Frontend**: Deploy to Vercel
+6. **Storage**: S3/Cloudflare R2 for artifacts
+
+## 📈 Monitoring
+
+- **Health Checks**: `/health` endpoints on all services
+- **Logging**: Structured JSON logs
+- **Metrics**: Application performance monitoring
+- **Alerts**: Error tracking with Sentry
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests
+5. Submit a pull request
 
 ## 📄 License
 
-MIT © [Nethmina Sandaruwan](https://github.com/ByteBigBoss)
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+
+## 🔗 Links
+
+- [Documentation](./docs/)
+- [API Reference](./docs/api.md)
+- [Development Guide](./docs/development.md)
+- [Deployment Guide](./docs/deployment.md)

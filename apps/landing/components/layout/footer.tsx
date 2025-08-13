@@ -5,39 +5,39 @@ const navigation = {
   product: [
     { name: 'Features', href: '#features' },
     { name: 'Pricing', href: '#pricing' },
-    { name: 'Integrations', href: '/integrations' },
-    { name: 'API', href: '/api' },
+    { name: 'Demo', href: '#demo' },
+    { name: 'API', href: '/docs/api' },
   ],
-  company: [
-    { name: 'About', href: '/about' },
-    { name: 'Blog', href: '/blog' },
-    { name: 'Careers', href: '/careers' },
-    { name: 'Press', href: '/press' },
+  developers: [
+    { name: 'Documentation', href: '/docs' },
+    { name: 'GitHub', href: 'https://github.com/Tukesh1/codexp-ai' },
+    { name: 'API Reference', href: '/docs/api' },
+    { name: 'Examples', href: '/docs/examples' },
   ],
   resources: [
-    { name: 'Documentation', href: '/docs' },
-    { name: 'Help Center', href: '/help' },
+    { name: 'Getting Started', href: '/docs/getting-started' },
+    { name: 'Use Cases', href: '/use-cases' },
     { name: 'Community', href: '/community' },
-    { name: 'Status', href: '/status' },
+    { name: 'Changelog', href: '/changelog' },
   ],
-  legal: [
-    { name: 'Privacy', href: '/privacy' },
-    { name: 'Terms', href: '/terms' },
-    { name: 'Security', href: '/security' },
-    { name: 'Cookies', href: '/cookies' },
+  support: [
+    { name: 'Help Center', href: '/help' },
+    { name: 'Contact', href: '/contact' },
+    { name: 'Status', href: '/status' },
+    { name: 'Bug Reports', href: '/issues' },
   ],
 }
 
 const socialLinks = [
   {
+    name: 'GitHub',
+    href: 'https://github.com/Tukesh1/codexp-ai',
+    icon: Github,
+  },
+  {
     name: 'Twitter',
     href: '#',
     icon: Twitter,
-  },
-  {
-    name: 'GitHub',
-    href: '#',
-    icon: Github,
   },
   {
     name: 'LinkedIn',
@@ -46,7 +46,7 @@ const socialLinks = [
   },
   {
     name: 'Email',
-    href: 'mailto:hello@flowbite.com',
+    href: 'mailto:contact@codexp.ai',
     icon: Mail,
   },
 ]
@@ -59,13 +59,13 @@ export function Footer() {
           {/* Brand Section */}
           <div className="lg:col-span-2">
             <div className="flex items-center space-x-2 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">F</span>
+              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-green-500 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">C</span>
               </div>
-              <span className="font-semibold text-xl">FlowBite</span>
+              <span className="font-semibold text-xl">Codexp AI</span>
             </div>
             <p className="text-gray-400 mb-6 max-w-md">
-              Transform your business operations with AI-powered insights and intelligent automation tools that scale with your growth.
+              Automatically analyze, document, and visualize any codebase with AI. Transform complex code into clear documentation and interactive diagrams.
             </p>
             <div className="flex space-x-4">
               {socialLinks.map((item) => (
@@ -102,10 +102,10 @@ export function Footer() {
 
           <div>
             <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">
-              Company
+              Developers
             </h3>
             <ul className="space-y-3">
-              {navigation.company.map((item) => (
+              {navigation.developers.map((item) => (
                 <li key={item.name}>
                   <Link
                     href={item.href}
@@ -138,10 +138,10 @@ export function Footer() {
 
           <div>
             <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">
-              Legal
+              Support
             </h3>
             <ul className="space-y-3">
-              {navigation.legal.map((item) => (
+              {navigation.support.map((item) => (
                 <li key={item.name}>
                   <Link
                     href={item.href}
@@ -159,8 +159,8 @@ export function Footer() {
         <div className="mt-12 pt-8 border-t border-gray-800">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="mb-4 md:mb-0">
-              <h3 className="text-lg font-semibold mb-2">Stay updated</h3>
-              <p className="text-gray-400">Get the latest news and updates delivered to your inbox.</p>
+              <h3 className="text-lg font-semibold mb-2">Developer Updates</h3>
+              <p className="text-gray-400">Get notified about new features, API updates, and code analysis improvements.</p>
             </div>
             <div className="flex space-x-2">
               <input
@@ -178,7 +178,7 @@ export function Footer() {
         {/* Bottom Section */}
         <div className="mt-8 pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center">
           <p className="text-gray-400 text-sm">
-            © {new Date().getFullYear()} FlowBite. All rights reserved.
+            © {new Date().getFullYear()} Codexp AI. All rights reserved.
           </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
             <Link href="/privacy" className="text-gray-400 hover:text-white text-sm transition-colors">

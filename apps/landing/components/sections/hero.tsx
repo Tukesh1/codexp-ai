@@ -14,32 +14,35 @@ export function Hero() {
               <ArrowRight className="w-4 h-4" />
             </div> */}
             <div className="inline-flex items-center px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/30 mb-8">
-            <Sparkles className="w-4 h-4 mr-2 text-yellow-300" />
+            <Sparkles className="w-4 h-4 mr-2 text-blue-300" />
             <span className="text-sm font-medium text-white/80">
-              Join 10,000+ businesses already growing with FlowBite
+              Trusted by developers at leading tech companies
             </span>
           </div>
             {/* Main Headline */}
             <div className="space-y-6">
               <h1 className="text-2xl md:text-5xl lg:text-5xl font-light text-[#878787] leading-[1.1] tracking-tight">
-                Invoicing, Time tracking, File reconciliation, Storage, Financial Overview & your own Assistant made for{' '}
-                <span className="text-[#F5F5F3] font-medium">Entrepreneurs</span>
+                Explain, document, and visualize codebases automatically with{' '}
+                <span className="text-[#F5F5F3] font-medium">AI-powered analysis</span>
               </h1>
+              <p className="text-lg text-[#878787] max-w-xl">
+                Ship dev-ready docs, diagrams, and Q&A for any repository in minutes. Understand unfamiliar code instantly.
+              </p>
             </div>
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <Link
-                href="/contact"
+                href="/demo"
                 className="inline-flex items-center justify-center px-6 py-3 bg-[#F5F5F3] text-[#0C0C0C] text-sm font-medium hover:bg-[#E5E5E3] transition-colors border border-[#E5E5E3]"
               >
-                Talk to founders
+                Try Live Demo
               </Link>
               <Link
-                href="/trial"
+                href="/github"
                 className="inline-flex items-center justify-center px-6 py-3 border border-[#2C2C2C] text-[#F5F5F3] text-sm font-medium hover:bg-[#1A1A1A] transition-colors"
               >
-                Start free trial
+                View on GitHub
               </Link>
             </div>
           </div>
@@ -58,41 +61,51 @@ export function Hero() {
                   </div>
                 </div>
 
-                {/* Dashboard Content */}
+                {/* Code Analysis Dashboard */}
                 <div className="p-6 space-y-6">
                   {/* Stats Cards */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-[#1A1A1A] p-4 border border-[#2C2C2C]">
-                      <div className="text-2xl font-semibold text-[#F5F5F3] mb-1 font-mono">$12,546.90</div>
-                      <div className="text-[#878787] text-sm">Revenue</div>
+                      <div className="text-2xl font-semibold text-[#F5F5F3] mb-1 font-mono">2,847</div>
+                      <div className="text-[#878787] text-sm">Functions</div>
                     </div>
                     <div className="bg-[#1A1A1A] p-4 border border-[#2C2C2C]">
-                      <div className="text-2xl font-semibold text-[#F5F5F3] mb-1 font-mono">156</div>
-                      <div className="text-[#878787] text-sm">Invoices</div>
+                      <div className="text-2xl font-semibold text-[#F5F5F3] mb-1 font-mono">98%</div>
+                      <div className="text-[#878787] text-sm">Documented</div>
                     </div>
                   </div>
 
-                  {/* Chart Area */}
+                  {/* Code Structure Visualization */}
                   <div className="bg-[#1A1A1A] p-4 border border-[#2C2C2C] h-32">
-                    <div className="flex items-end justify-between h-full space-x-1">
-                      {[40, 60, 30, 80, 50, 70, 45, 85, 65, 75, 55, 90].map((height, i) => (
-                        <div
-                          key={i}
-                          className="bg-[#404040] flex-1"
-                          style={{ height: `${height}%` }}
-                        ></div>
+                    <div className="text-[#878787] text-xs mb-2">Code Structure</div>
+                    <div className="space-y-2">
+                      {['Python 45%', 'TypeScript 30%', 'Go 15%', 'Other 10%'].map((lang, i) => (
+                        <div key={i} className="flex items-center space-x-2">
+                          <div className={`w-2 h-2 rounded-full ${
+                            i === 0 ? 'bg-blue-400' : i === 1 ? 'bg-yellow-400' : i === 2 ? 'bg-green-400' : 'bg-gray-400'
+                          }`}></div>
+                          <div className="text-[#F5F5F3] text-xs flex-1">{lang}</div>
+                          <div className={`h-1 flex-1 rounded ${
+                            i === 0 ? 'bg-blue-400' : i === 1 ? 'bg-yellow-400' : i === 2 ? 'bg-green-400' : 'bg-gray-400'
+                          }`} style={{ width: `${45 - i * 10}%` }}></div>
+                        </div>
                       ))}
                     </div>
                   </div>
 
-                  {/* Recent Activity */}
+                  {/* Recent Analysis */}
                   <div className="space-y-3">
-                    <div className="text-[#F5F5F3] text-sm font-medium">Recent Activity</div>
-                    {[1, 2, 3].map((i) => (
+                    <div className="text-[#F5F5F3] text-sm font-medium">Recent Analysis</div>
+                    {[
+                      { name: 'auth.py', type: 'Function', status: 'Analyzed' },
+                      { name: 'UserService', type: 'Class', status: 'Documented' },
+                      { name: 'main.go', type: 'File', status: 'Analyzed' }
+                    ].map((item, i) => (
                       <div key={i} className="flex items-center space-x-3 text-sm">
                         <div className="w-2 h-2 bg-[#28CA42] rounded-full"></div>
-                        <div className="text-[#F5F5F3]">Invoice #{1000 + i} paid</div>
-                        <div className="text-[#878787] ml-auto">2h ago</div>
+                        <div className="text-[#F5F5F3]">{item.name}</div>
+                        <div className="text-[#878787] text-xs bg-[#2C2C2C] px-2 py-1 rounded">{item.type}</div>
+                        <div className="text-[#878787] ml-auto">2m ago</div>
                       </div>
                     ))}
                   </div>
@@ -101,13 +114,13 @@ export function Hero() {
 
               {/* Floating Elements */}
               <div className="absolute -top-4 -right-4 bg-[#1A1A1A] border border-[#2C2C2C] p-3 shadow-xl">
-                <div className="text-[#28CA42] text-sm font-medium font-mono">+$2,340</div>
-                <div className="text-[#878787] text-xs">Today</div>
+                <div className="text-[#28CA42] text-sm font-medium font-mono">95% Match</div>
+                <div className="text-[#878787] text-xs">Q&A Accuracy</div>
               </div>
 
               <div className="absolute -bottom-4 -left-4 bg-[#1A1A1A] border border-[#2C2C2C] p-3 shadow-xl">
-                <div className="text-[#3B82F6] text-sm font-medium font-mono">12 hrs</div>
-                <div className="text-[#878787] text-xs">Tracked</div>
+                <div className="text-[#3B82F6] text-sm font-medium font-mono">3.2 min</div>
+                <div className="text-[#878787] text-xs">Analysis Time</div>
               </div>
             </div>
           </div>

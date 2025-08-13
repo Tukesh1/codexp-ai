@@ -1,7 +1,6 @@
 
-# 🧠 Omni-SaaS FastAPI Backend Template
+# codexp FastAPI Backend Template
 
-This FastAPI template is for boostrap your next FastAPI project faster with few clicks.
 
 ---
 

@@ -1,57 +1,57 @@
 import { 
-  Brain, 
+  Code2, 
   Zap, 
-  Shield, 
-  BarChart3, 
-  Users, 
-  Workflow,
+  FileText, 
+  MessageSquare, 
+  GitBranch, 
+  Search,
   ArrowRight
 } from 'lucide-react'
 
 const features = [
   {
-    icon: Brain,
-    title: 'AI-Powered Insights',
-    description: 'Get intelligent recommendations and predictions based on your business data with advanced machine learning algorithms.',
-    color: 'from-purple-500 to-purple-600'
+    icon: Code2,
+    title: 'Smart Code Analysis',
+    description: 'AI-powered parsing using tree-sitter to understand your codebase structure, functions, and relationships.',
+    color: 'from-blue-500 to-blue-600'
   },
   {
-    icon: Zap,
-    title: 'Lightning Fast',
-    description: 'Built for speed with modern architecture. Experience instant loading and real-time updates across all features.',
-    color: 'from-yellow-500 to-orange-500'
-  },
-  {
-    icon: Shield,
-    title: 'Enterprise Security',
-    description: 'Bank-grade security with end-to-end encryption, SOC 2 compliance, and advanced threat protection.',
+    icon: FileText,
+    title: 'Auto Documentation',
+    description: 'Generate comprehensive docs, function summaries, and API documentation automatically from your code.',
     color: 'from-green-500 to-emerald-600'
   },
   {
-    icon: BarChart3,
-    title: 'Advanced Analytics',
-    description: 'Comprehensive dashboards and reports that turn your data into actionable business intelligence.',
-    color: 'from-blue-500 to-cyan-500'
+    icon: MessageSquare,
+    title: 'Intelligent Q&A',
+    description: 'Ask questions about your codebase and get accurate, context-aware answers powered by AI.',
+    color: 'from-purple-500 to-purple-600'
   },
   {
-    icon: Users,
-    title: 'Team Collaboration',
-    description: 'Work together seamlessly with real-time collaboration tools, shared workspaces, and role-based permissions.',
-    color: 'from-pink-500 to-rose-500'
+    icon: GitBranch,
+    title: 'Visual Diagrams',
+    description: 'Create dependency graphs, call diagrams, and architectural visualizations from your codebase.',
+    color: 'from-orange-500 to-red-500'
   },
   {
-    icon: Workflow,
-    title: 'Smart Automation',
-    description: 'Automate repetitive tasks and workflows with intelligent triggers and custom business rules.',
-    color: 'from-indigo-500 to-purple-500'
+    icon: Search,
+    title: 'Semantic Search',
+    description: 'Find code by meaning, not just text. Search for functionality across your entire codebase.',
+    color: 'from-cyan-500 to-blue-500'
+  },
+  {
+    icon: Zap,
+    title: 'Multi-Language',
+    description: 'Support for Python, JavaScript, TypeScript, Go, C++, and more programming languages.',
+    color: 'from-yellow-500 to-orange-500'
   }
 ]
 
 const stats = [
-  { label: 'Active Users', value: '50K+' },
-  { label: 'Data Points Processed', value: '1B+' },
-  { label: 'Uptime', value: '99.9%' },
-  { label: 'Countries', value: '120+' }
+  { label: 'Languages Supported', value: '25+' },
+  { label: 'Functions Analyzed', value: '10M+' },
+  { label: 'Analysis Accuracy', value: '99.5%' },
+  { label: 'Repositories', value: '5K+' }
 ]
 
 export function Features() {
@@ -61,11 +61,11 @@ export function Features() {
         {/* Section Header */}
         <div className="text-center mb-16">
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4">
-            Everything you need to
-            <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent"> succeed</span>
+            Understand any codebase
+            <span className="bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent"> instantly</span>
           </h2>
           <p className="text-xl text-gray-400 max-w-3xl mx-auto">
-            Powerful features designed to streamline your business operations and drive growth through intelligent automation.
+            Powerful AI-driven features that make complex codebases accessible and comprehensible for developers at any level.
           </p>
         </div>
 
@@ -93,10 +93,10 @@ export function Features() {
         <div className="bg-gradient-to-r from-gray-900 to-black border border-gray-800 p-12 text-white">
           <div className="text-center mb-12">
             <h3 className="text-2xl sm:text-3xl font-bold mb-4">
-              Trusted by businesses worldwide
+              Trusted by developers worldwide
             </h3>
             <p className="text-gray-300 text-lg">
-              Join thousands of companies already using FlowBite to transform their operations
+              Join thousands of developers using Codexp AI to understand and document their codebases
             </p>
           </div>
           

@@ -1,91 +1,91 @@
 const testimonials = [
   {
     id: 1,
-    name: "Lucas Grey",
-    handle: "@ImLucasGrey",
+    name: "Sarah Chen",
+    handle: "@sarahdev",
     avatar: "https://pbs.twimg.com/profile_images/1843079229073981440/pQqZJX5G_400x400.jpg",
-    content: "This is so ingenious and good!",
+    content: "Finally, a tool that actually understands my legacy codebase. Saved me hours of documentation work!",
     verified: true
   },
   {
     id: 2,
-    name: "Patrick Tobler",
-    handle: "@Padierfind",
+    name: "Marcus Rodriguez",
+    handle: "@marcuscode",
     avatar: "https://pbs.twimg.com/profile_images/1870640743196352514/bkdF-Dck_400x400.jpg",
-    content: "I love this",
+    content: "The Q&A feature is incredible. It's like having a senior developer explain the code to you.",
     verified: true
   },
   {
     id: 3,
-    name: "Ben Tossell",
-    handle: "@bentossell",
+    name: "Alex Thompson",
+    handle: "@alexdevs",
     avatar: "https://pbs.twimg.com/profile_images/1878086921726943233/vOx1kjeP_400x400.jpg",
-    content: "well, an actually enjoyable way to organise my whole in and out of my business, plus highlighted a bunch of things I need to cancel",
+    content: "Game-changer for onboarding new team members. They understand our codebase in days, not weeks.",
     verified: true
   },
   {
     id: 4,
-    name: "Christian Alares",
-    handle: "@c_alares",
+    name: "Emily Zhang",
+    handle: "@emilybuilds",
     avatar: "https://pbs.twimg.com/profile_images/1194368464946974728/1D2biimN_400x400.jpg",
-    content: "Omg, this is so cool!",
+    content: "The dependency diagrams are beautiful and actually helpful. Great for architecture reviews!",
     verified: true
   },
   {
     id: 5,
-    name: "Zeno Rocha",
-    handle: "@zenorocha",
+    name: "David Kim",
+    handle: "@davidcodes",
     avatar: "https://pbs.twimg.com/profile_images/1792735373887696896/Nys5Q2b3_400x400.jpg",
-    content: "this is absolutely amazing",
+    content: "This tool pays for itself. Cut our code review time in half with the automated summaries.",
     verified: true
   },
   {
     id: 6,
-    name: "Bailey Simrell",
-    handle: "@baileysimrell",
+    name: "Rachel Foster",
+    handle: "@rachelfullstack",
     avatar: "https://pbs.twimg.com/profile_images/1488962358609330178/tdTC7o6M_400x400.jpg",
-    content: "Awesome man, looks amazing 🔥",
+    content: "Multi-language support is solid. Works perfectly with our Python/TypeScript/Go microservices.",
     verified: true
   },
   {
     id: 7,
-    name: "Darshan Gajara",
-    handle: "@WeirdoWizard",
+    name: "James Wilson",
+    handle: "@jamesbyte",
     avatar: "https://pbs.twimg.com/profile_images/1117472858836434944/FbWce7CZ_400x400.jpg",
-    content: "No sweat! Your smooth integration with banking data blew me away.",
+    content: "The semantic search is mind-blowing. Found functions I forgot I wrote years ago!",
     verified: false
   },
   {
     id: 8,
-    name: "FlowBite",
-    handle: "@flowbite",
+    name: "TechStartup Inc",
+    handle: "@techstartup",
     avatar: "https://pbs.twimg.com/profile_images/1839412200760610816/Lce29ADc_400x400.jpg",
-    content: "We love @flowbite 🖤",
+    content: "Using Codexp for all our repos now. The auto-documentation feature is a lifesaver.",
     verified: true,
     isCompany: true
   },
   {
     id: 9,
-    name: "Guillermo Rauch",
-    handle: "@rauchg",
+    name: "Lisa Garcia",
+    handle: "@lisacodes",
     avatar: "https://pbs.twimg.com/profile_images/1783856060249595904/8TfcCN0r_400x400.jpg",
-    content: "nice to see @flowbite generative ui features built on @vercel AI sdk. flowbite is becoming one of the best OSS @nextjs real-world apps",
+    content: "Best investment for our dev team. The AI actually understands context, not just syntax.",
     verified: true
   },
   {
     id: 10,
-    name: "Steven Tey",
-    handle: "@steventey",
+    name: "Michael Chang",
+    handle: "@mikedevops",
     avatar: "https://pbs.twimg.com/profile_images/1923813473240203264/owJG92AC_400x400.jpg",
-    content: "Just found my new favorite open-source project → flowbite.com. It's a modern layer on top of Quickbooks/Xero that lets you automate the tedious accounting aspects of your business and focus on what matters – your product. Built by the 🐐s",
+    content: "Codexp helped us document our entire microservices architecture. The export features are top-notch.",
     verified: true
   },
   {
     id: 11,
-    name: "Peer Richelsen",
-    handle: "@peer_rich",
+    name: "Sofia Patel",
+    handle: "@sofiabuilds",
     avatar: "https://pbs.twimg.com/profile_images/1816814706000080897/uSIidPHz_400x400.png",
-    content: "the best thing i couldve done as a founder is build something that helps other founders. so proud 🖤 @flowbite",
+    content: "As a tech lead, this tool is invaluable for code reviews and knowledge sharing across the team.",
     verified: true
   }
 ]
@@ -95,7 +95,7 @@ export function Testimonials() {
     <section className="py-16 bg-[#0D0C0D] overflow-hidden">
       <div className="container mx-auto px-4">
         <div className="relative pb-8">
-          <h3 className="text-4xl mb-6 font-medium text-[#F5F5F3]">What people say</h3>
+          <h3 className="text-4xl mb-6 font-medium text-[#F5F5F3]">What developers say</h3>
           <div
             className="scroller relative z-10 overflow-hidden -ml-4 md:-ml-[1200px] w-screen md:w-[calc(100vw+1400px)]"
             style={{

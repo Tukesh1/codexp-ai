@@ -1,19 +1,22 @@
 export const SiteMetadata = {
-  title: "Omni-SaaS | Landing Page",
-  description: "Omni-SaaS — AI SaaS Starter Monorepo⚡",
-  authors: [{ name: "Nethmina Sandaruwan" }],
+  title: "Codexp AI | Automated Code Analysis",
+  description: "Explain, document, and visualize codebases automatically. Ship dev-ready docs, diagrams, and Q&A for any repo in minutes.",
+  authors: [{ name: "Codexp AI Team" }],
   keywords: [
-    "Omni-SaaS",
-    "AI SaaS Template",
-    "Next.js",
-    "Monorepo",
-    "Starter Kit",
+    "Codexp AI",
+    "Code Analysis",
+    "AI Documentation",
+    "Codebase Analysis",
+    "Automatic Documentation",
+    "Code Visualization",
+    "Developer Tools",
+    "AI Code Assistant",
   ],
   openGraph: {
-    title: "Omni-SaaS | AI SaaS Template",
-    description: "Omni-SaaS — AI SaaS Starter Monorepo⚡",
-    url: "https://tukesh.sbs",
-    siteName: "Omni-SaaS",
+    title: "Codexp AI | Automated Code Analysis Platform",
+    description: "Explain, document, and visualize codebases automatically. Ship dev-ready docs, diagrams, and Q&A for any repo in minutes.",
+    url: "https://github.com/Tukesh1/codexp-ai",
+    siteName: "Codexp AI",
     images: [
       {
         url: "/images/logo.png",
@@ -26,8 +29,8 @@ export const SiteMetadata = {
 
 export const PageMetadata = {
     Home: {
-        title: "Omni-SaaS | AI SaaS Template",
-        description: "Omni-SaaS — AI SaaS Starter Monorepo⚡",
+        title: "Codexp AI | Automated Code Analysis Platform",
+        description: "Explain, document, and visualize codebases automatically. Ship dev-ready docs, diagrams, and Q&A for any repo in minutes.",
     },
 }
 

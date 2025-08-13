@@ -3,42 +3,37 @@ import Link from 'next/link'
 
 const plans = [
   {
-    name: 'Starter',
-    price: 29,
-    description: 'For freelancers and solo founders who need the essentials.',
+    name: 'Free',
+    price: 0,
+    description: 'Perfect for exploring Codexp AI capabilities.',
     features: [
-      'Send up to 10 invoices per month',
-      '2 connected banks',
-      'Unlimited bank accounts',
-      'Financial overview',
-      'Time Tracker',
-      '50 inbox items per month',
-      'Customer management',
-      'Export CSV & reports',
-      'Assistant',
-      '10GB Vault Storage',
-      '2 users'
+      '1 public repository',
+      'Basic code analysis',
+      'Function summaries',
+      '50 Q&A queries per month',
+      'Community support',
+      'Export basic docs',
+      'GitHub integration'
     ],
-    cta: 'Start 14 day trial',
+    cta: 'Get started',
     popular: false
   },
   {
-    name: 'Pro',
-    price: 49,
-    originalPrice: 99,
-    description: 'For growing teams and businesses that need more flexibility.',
+    name: 'Developer',
+    price: 19,
+    originalPrice: 39,
+    description: 'For individual developers and small projects.',
     features: [
-      'Send up to 50 invoices per month',
-      '10 connected banks',
-      'Unlimited bank accounts',
-      'Financial overview',
-      'Time Tracker',
-      '500 inbox items per month',
-      'Customer management',
-      'Export CSV & reports',
-      'Assistant',
-      '100GB Vault Storage',
-      '10 users'
+      'Unlimited private repositories',
+      'Advanced code analysis',
+      'Auto documentation generation',
+      'Dependency diagrams',
+      'Unlimited Q&A queries',
+      '50K analysis tokens daily',
+      'Email support',
+      'Export all formats',
+      'PR analysis',
+      'API access'
     ],
     cta: 'Start 14 day trial',
     popular: true
@@ -55,7 +50,7 @@ export function Pricing() {
             Simple, transparent pricing
           </h2>
           <p className="text-gray-400 text-lg">
-            Choose the plan that's right for you and start your 14-day trial today.
+            Start free and scale as your development projects grow. No hidden fees.
           </p>
         </div>
 

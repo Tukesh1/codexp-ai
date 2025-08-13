@@ -4,7 +4,7 @@ from app.api.routes import router as api_router
 from app.core.config import settings
 from app.core.auth import verify_supabase_token
 
-app = FastAPI(title="Omni-SaaS FastAPI Backend")
+app = FastAPI(title="Codexp AI FastAPI Backend")
 
 app.add_middleware(
     CORSMiddleware,
@@ -16,6 +16,6 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to Omni-SaaS — AI SaaS Starter Backend"}
+    return {"message": "Welcome to Codexp AI — AI SaaS Starter Backend"}
 
 app.include_router(api_router, prefix="/api/v1", dependencies=[Depends(verify_supabase_token)])

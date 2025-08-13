@@ -1,6 +1,6 @@
-# Omni-SaaS – Landing Page
+# Codexp AI – Landing Page
 
-This is the marketing website for Omni-SaaS. It showcases the product, pricing, features, and links to sign up.
+This is the marketing website for Codexp AI. It showcases the product, pricing, features, and links to sign up.
 
 ## 📦 Tech Stack
 - [Next.js](https://nextjs.org/) (or Astro)

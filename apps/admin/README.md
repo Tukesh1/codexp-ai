@@ -1,4 +1,4 @@
-# Omni-SaaS – Admin Dashboard
+# Codexp AI – Admin Dashboard
 
 This is the internal admin interface used to manage users, billing, service logs, and system configurations.
 

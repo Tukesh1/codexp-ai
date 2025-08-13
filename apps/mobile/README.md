@@ -1,6 +1,6 @@
-# Omni-SaaS – Mobile App (Optional)
+# Codexp AI – Mobile App (Optional)
 
-This is the mobile companion app for Omni-SaaS, built with **Expo + React Native**. Ideal for users who need quick access to core features on the go.
+This is the mobile companion app for Codexp AI, built with **Expo + React Native**. Ideal for users who need quick access to core features on the go.
 
 ## 📦 Tech Stack
 - [React Native](https://reactnative.dev/)

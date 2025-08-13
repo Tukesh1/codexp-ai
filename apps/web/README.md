@@ -1,6 +1,6 @@
-# Omni-SaaS – Web App
+# Codexp AI – Web App
 
-This is the main user-facing frontend for Omni-SaaS. Built with **Next.js 14 (App Router)** and **Tailwind CSS**, it serves as the core dashboard for SaaS users.
+This is the main user-facing frontend for Codexp AI. Built with **Next.js 14 (App Router)** and **Tailwind CSS**, it serves as the core dashboard for SaaS users.
 
 ## 📦 Tech Stack
 - [Next.js 14+](https://nextjs.org/)

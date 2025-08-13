@@ -1,19 +1,19 @@
 export const SiteMetadata = {
-  title: "Omni-SaaS | Web App",
-  description: "Omni-SaaS — AI SaaS Starter Monorepo⚡",
+  title: "Codexp AI | Web App",
+  description: "Codexp AI — AI SaaS Starter Monorepo⚡",
   authors: [{ name: "Nethmina Sandaruwan" }],
   keywords: [
-    "Omni-SaaS",
+    "Codexp AI",
     "AI SaaS Template",
     "Next.js",
     "Monorepo",
     "Starter Kit",
   ],
   openGraph: {
-    title: "Omni-SaaS | AI SaaS Template",
-    description: "Omni-SaaS — AI SaaS Starter Monorepo⚡",
+    title: "Codexp AI | AI SaaS Template",
+    description: "Codexp AI — AI SaaS Starter Monorepo⚡",
     url: "https://example.com",
-    siteName: "Omni-SaaS",
+    siteName: "Codexp AI",
     images: [
       {
         url: "/images/logo.png",
@@ -26,8 +26,8 @@ export const SiteMetadata = {
 
 export const PageMetadata = {
     Home: {
-        title: "Omni-SaaS | AI SaaS Template",
-        description: "Omni-SaaS — AI SaaS Starter Monorepo⚡",
+        title: "Codexp AI | AI SaaS Template",
+        description: "Codexp AI — AI SaaS Starter Monorepo⚡",
     },
 }
 

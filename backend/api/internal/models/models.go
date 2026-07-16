@@ -22,16 +22,18 @@ type User struct {
 
 // UserSettings is the public settings response (API key masked).
 type UserSettings struct {
-	Email             string `json:"email"`
-	Plan              string `json:"plan"`
-	AIProvider        string `json:"ai_provider"`
-	AIModel           string `json:"ai_model"`
-	HasAPIKey         bool   `json:"has_api_key"`
-	HasOpenAIKey      bool   `json:"has_openai_key"`
-	HasGeminiKey      bool   `json:"has_gemini_key"`
-	APIKeyPreview     string `json:"api_key_preview,omitempty"`
-	OpenAIKeyPreview  string `json:"openai_key_preview,omitempty"`
-	GeminiKeyPreview  string `json:"gemini_key_preview,omitempty"`
+	Email              string `json:"email"`
+	Plan               string `json:"plan"`
+	AIProvider         string `json:"ai_provider"`
+	AIModel            string `json:"ai_model"`
+	HasAPIKey          bool   `json:"has_api_key"`
+	HasOpenAIKey       bool   `json:"has_openai_key"`
+	HasGeminiKey       bool   `json:"has_gemini_key"`
+	HasGitHubToken     bool   `json:"has_github_token"`
+	APIKeyPreview      string `json:"api_key_preview,omitempty"`
+	OpenAIKeyPreview   string `json:"openai_key_preview,omitempty"`
+	GeminiKeyPreview   string `json:"gemini_key_preview,omitempty"`
+	GitHubTokenPreview string `json:"github_token_preview,omitempty"`
 }
 
 // UpdateSettingsRequest updates user AI settings.
@@ -39,10 +41,12 @@ type UpdateSettingsRequest struct {
 	AIProvider   *string `json:"ai_provider"`
 	OpenAIAPIKey *string `json:"openai_api_key"`
 	GeminiAPIKey *string `json:"gemini_api_key"`
+	GitHubToken  *string `json:"github_token"`
 	AIModel      *string `json:"ai_model"`
 	ClearAPIKey  bool    `json:"clear_api_key"`
 	ClearOpenAI  bool    `json:"clear_openai_key"`
 	ClearGemini  bool    `json:"clear_gemini_key"`
+	ClearGitHub  bool    `json:"clear_github_token"`
 }
 
 // Project is a repository being analyzed.

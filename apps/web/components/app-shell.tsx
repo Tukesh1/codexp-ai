@@ -3,6 +3,7 @@
 import { useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { AppSidebar } from "@/components/app-sidebar"
+import { GlobalAskPanel } from "@/components/global-ask-panel"
 import { useAuth } from "@/lib/auth"
 import { Separator } from "@workspace/ui/components/separator"
 import {
@@ -49,6 +50,7 @@ export function AppShell({
         </header>
         <div className="flex flex-1 flex-col gap-6 p-6">{children}</div>
       </SidebarInset>
+      <GlobalAskPanel />
     </SidebarProvider>
   )
 }

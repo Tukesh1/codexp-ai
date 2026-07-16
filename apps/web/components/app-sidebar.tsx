@@ -32,6 +32,14 @@ const nav = [
   { title: "Settings", href: "/settings", icon: Settings },
 ]
 
+function isActive(pathname: string, href: string) {
+  if (href === "/projects") {
+    return pathname === "/projects" || (pathname.startsWith("/projects/") && !pathname.startsWith("/projects/new"))
+  }
+  if (href === "/projects/new") return pathname === "/projects/new"
+  return pathname === href || pathname.startsWith(href + "/")
+}
+
 export function AppSidebar() {
   const pathname = usePathname()
   const router = useRouter()
@@ -56,7 +64,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {nav.map((item) => {
-                const active = pathname === item.href || pathname.startsWith(item.href + "/")
+                const active = isActive(pathname, item.href)
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton asChild isActive={active} tooltip={item.title}>

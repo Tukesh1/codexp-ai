@@ -38,7 +38,7 @@ func main() {
 	authService := services.NewAuthService(db, cfg.JWTSecret, cfg.ClerkSecretKey)
 	settingsService := services.NewSettingsService(db)
 	aiClient := services.NewAIClient(cfg.AIServiceURL)
-	projectService := services.NewProjectService(db, redis, aiClient, settingsService)
+	projectService := services.NewProjectService(db, redis, aiClient, settingsService, cfg.GitHubToken)
 	githubService := services.NewGitHubService(cfg.GitHubAppID, cfg.GitHubPrivateKey)
 	jobService := services.NewJobService(db, redis)
 
@@ -115,9 +115,13 @@ func main() {
 			analysis := protected.Group("/projects/:id")
 			{
 				analysis.GET("/summary", projectHandler.GetProjectSummary)
+				analysis.GET("/insights", projectHandler.GetProjectInsights)
+				analysis.GET("/insights/github/:section", projectHandler.RefreshGitHubSection)
 				analysis.GET("/files", projectHandler.GetProjectFiles)
+				analysis.GET("/files/content", projectHandler.GetFileContent)
 				analysis.GET("/search", projectHandler.SearchCode)
 				analysis.POST("/ask", projectHandler.AskQuestion)
+				analysis.GET("/chat", projectHandler.GetChatHistory)
 				analysis.GET("/diagram", projectHandler.GetDependencyDiagram)
 				analysis.GET("/docs", projectHandler.GetGeneratedDocs)
 				analysis.POST("/docs", projectHandler.GenerateDocs)

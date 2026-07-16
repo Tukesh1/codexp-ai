@@ -27,10 +27,14 @@ export default function SettingsPage() {
   const [provider, setProvider] = useState<"openai" | "gemini">("openai")
   const [openaiKey, setOpenaiKey] = useState("")
   const [geminiKey, setGeminiKey] = useState("")
+  const [githubToken, setGithubToken] = useState("")
   const [model, setModel] = useState("gpt-4o-mini")
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [githubBusy, setGithubBusy] = useState(false)
+  const [githubSaved, setGithubSaved] = useState(false)
+  const [githubError, setGithubError] = useState<string | null>(null)
 
   useEffect(() => {
     api
@@ -94,6 +98,49 @@ export default function SettingsPage() {
       setError(err instanceof Error ? err.message : "Failed to clear key")
     } finally {
       setBusy(false)
+    }
+  }
+
+  async function onSaveGithub(e: React.FormEvent) {
+    e.preventDefault()
+    if (!githubToken.trim()) {
+      if (settings?.has_github_token) {
+        setGithubSaved(true)
+        setGithubError(null)
+        return
+      }
+      setGithubError("Paste a GitHub personal access token to save.")
+      return
+    }
+    setGithubBusy(true)
+    setGithubError(null)
+    setGithubSaved(false)
+    try {
+      const next = await api.updateSettings({ github_token: githubToken.trim() })
+      setSettings(next)
+      setGithubToken("")
+      setGithubSaved(true)
+      await refresh()
+    } catch (err) {
+      setGithubError(err instanceof Error ? err.message : "Failed to save GitHub token")
+    } finally {
+      setGithubBusy(false)
+    }
+  }
+
+  async function onClearGithub() {
+    if (!confirm("Remove your saved GitHub personal access token?")) return
+    setGithubBusy(true)
+    setGithubError(null)
+    try {
+      const next = await api.updateSettings({ clear_github_token: true })
+      setSettings(next)
+      setGithubSaved(true)
+      await refresh()
+    } catch (err) {
+      setGithubError(err instanceof Error ? err.message : "Failed to clear GitHub token")
+    } finally {
+      setGithubBusy(false)
     }
   }
 
@@ -215,6 +262,56 @@ export default function SettingsPage() {
           </form>
         </div>
 
+        <div className="space-y-4 rounded-xl border bg-card p-6">
+          <div>
+            <h2 className="text-lg font-semibold">GitHub token</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Paste a personal access token so Overview can load languages, commits, contributors, and releases without hitting GitHub rate limits. Classic PAT with <code className="text-xs">repo</code> (private) or public-repo read access is enough.
+            </p>
+          </div>
+          <form onSubmit={onSaveGithub} className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-sm font-medium" htmlFor="github-token">
+                  Personal access token
+                </label>
+                {settings?.has_github_token && (
+                  <span className="text-xs font-medium text-emerald-600">
+                    Saved · {settings.github_token_preview}
+                  </span>
+                )}
+              </div>
+              <Input
+                id="github-token"
+                type="password"
+                value={githubToken}
+                onChange={(e) => setGithubToken(e.target.value)}
+                placeholder={
+                  settings?.has_github_token
+                    ? "Leave blank to keep saved token"
+                    : "ghp_… or github_pat_…"
+                }
+                autoComplete="off"
+              />
+              <p className="text-xs text-muted-foreground">
+                Stored server-side and never shown in full again. Used only for GitHub API calls on your projects.
+              </p>
+            </div>
+            {githubError && <p className="text-sm text-destructive">{githubError}</p>}
+            {githubSaved && <p className="text-sm text-emerald-600">GitHub token saved.</p>}
+            <div className="flex gap-2">
+              <Button type="submit" disabled={githubBusy} className="flex-1">
+                {githubBusy ? "Saving…" : "Save GitHub token"}
+              </Button>
+              {settings?.has_github_token && (
+                <Button type="button" variant="outline" disabled={githubBusy} onClick={onClearGithub}>
+                  Clear token
+                </Button>
+              )}
+            </div>
+          </form>
+        </div>
+
         <div className="space-y-2 rounded-xl border bg-card p-6 text-sm">
           <h3 className="font-medium">Account</h3>
           <Row label="Email" value={settings?.email} />
@@ -222,6 +319,7 @@ export default function SettingsPage() {
           <Row label="Active provider" value={settings?.ai_provider} />
           <Row label="OpenAI key" value={settings?.has_openai_key ? `Configured (${settings.openai_key_preview})` : "Missing"} />
           <Row label="Gemini key" value={settings?.has_gemini_key ? `Configured (${settings.gemini_key_preview})` : "Missing"} />
+          <Row label="GitHub token" value={settings?.has_github_token ? `Configured (${settings.github_token_preview})` : "Missing"} />
         </div>
       </div>
     </AppShell>

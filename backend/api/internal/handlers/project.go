@@ -335,6 +335,78 @@ func (h *ProjectHandler) GenerateDocs(c *gin.Context) {
 	c.JSON(http.StatusOK, docs)
 }
 
+func (h *ProjectHandler) GetFileContent(c *gin.Context) {
+	userUUID, projectID, ok := h.parseIDs(c)
+	if !ok {
+		return
+	}
+	path := c.Query("path")
+	if path == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "path query parameter is required"})
+		return
+	}
+	file, err := h.projectService.GetFileContent(userUUID, projectID, path)
+	if err != nil {
+		if err.Error() == "file not found" {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		h.writeProjectError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, file)
+}
+
+func (h *ProjectHandler) GetChatHistory(c *gin.Context) {
+	userUUID, projectID, ok := h.parseIDs(c)
+	if !ok {
+		return
+	}
+	messages, err := h.projectService.GetChatHistory(userUUID, projectID, 80)
+	if err != nil {
+		h.writeProjectError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"messages": messages})
+}
+
+func (h *ProjectHandler) GetProjectInsights(c *gin.Context) {
+	userUUID, projectID, ok := h.parseIDs(c)
+	if !ok {
+		return
+	}
+	// Default: local insights only (fast, no GitHub rate limit burn).
+	// Pass ?github=1 to include all GitHub sections in one shot.
+	includeGitHub := c.Query("github") == "1" || c.Query("github") == "true"
+	insights, err := h.projectService.GetProjectInsights(userUUID, projectID, includeGitHub)
+	if err != nil {
+		h.writeProjectError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, insights)
+}
+
+func (h *ProjectHandler) RefreshGitHubSection(c *gin.Context) {
+	userUUID, projectID, ok := h.parseIDs(c)
+	if !ok {
+		return
+	}
+	section := c.Param("section")
+	result, err := h.projectService.RefreshGitHubSection(userUUID, projectID, section)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if strings.Contains(err.Error(), "unknown section") {
+			status = http.StatusBadRequest
+		}
+		if err.Error() == "project not found" {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+
 func (h *ProjectHandler) parseIDs(c *gin.Context) (uuid.UUID, uuid.UUID, bool) {
 	userID, _ := c.Get("userID")
 	userUUID, err := uuid.Parse(userID.(string))

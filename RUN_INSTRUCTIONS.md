@@ -1,129 +1,48 @@
-# 🚀 Running the Monorepo Locally
+# Running CodeExp AI Locally
 
-This monorepo contains:
+## Architecture
 
-✅ **Next.js apps** (`apps/web`, `apps/admin`, `apps/landing`)
-✅ **Expo mobile app** (`apps/mobile`)
-✅ **FastAPI backend** (`backend/`)
+- **Landing** (`apps/landing`) → http://localhost:3002
+- **Web app** (`apps/web`) → http://localhost:3000
+- **Admin** (`apps/admin`) → http://localhost:3001
+- **Go API** (`backend/api`) → http://localhost:8080
+- **AI service** (`backend/ai-service`) → http://localhost:8000
+- **Postgres + Redis** via Docker Compose
 
-You can run services either using convenience scripts or manually.
+## Quick start
 
----
-
-## ✅ 1. Prerequisites
-
-Before running, ensure you have installed:
-
-* **Node.js ≥ 20**
-* **pnpm ≥ 8**
-
-  ```bash
-  npm install -g pnpm
-  ```
-* **Python ≥ 3.11**
-* **Docker (optional)** if you want to use containers
-* **Git Bash / WSL (Windows users)** for `.sh` scripts
-
----
-
-## ✅ 2. Running Services (Script Method - Recommended)
-
-You need **3 terminal tabs** (or windows) for full development.
-
-### 🛠 Make Run Scripts Executable (First Time Only)
 ```bash
-chmod +x run-apps.sh run-mobile.sh && cd backend && chmod +x run-backend.sh && cd ..
-```
+# 1) Install frontend deps
+pnpm install
 
-> ✅ If you cloned after the scripts were committed with `+x`, you can skip this.
+# 2) Copy env
+cp .env.example .env
 
----
+# 3) Start Postgres + Redis + Go API
+chmod +x run-api.sh run-ai.sh run-apps.sh
+./run-api.sh
 
-### 🖥 Run Next.js Apps (Web/Admin/Landing)
-```bash
+# 4) In another terminal — AI worker (clones repos, parses code, embeddings)
+./run-ai.sh
+
+# 5) In another terminal — frontends
 ./run-apps.sh
 ```
-**What it does:**
-1. Runs `pnpm install` (workspace-aware)
-2. Starts all Next.js apps using Turbopack
 
-**Access at:**
-- **Web** → [http://localhost:3000](http://localhost:3000)
-- **Admin** → [http://localhost:3001](http://localhost:3001)
-- **Landing** → [http://localhost:3002](http://localhost:3002)
+## Local auth (no Clerk required)
 
-### 📱 Run Expo Mobile App
-```bash
-./run-mobile.sh
-```
-**Access at:**
-- **Expo DevTools** → [http://localhost:19002](http://localhost:19002)
+1. Open http://localhost:3000/login
+2. Use any email (default `dev@codeexp.ai`)
+3. The API issues a JWT via `POST /api/v1/auth/dev-login`
 
-### 🔧 Run Backend (FastAPI)
-```bash
-cd backend && ./run-backend.sh
-```
-**Access at:**
-- **FastAPI** → [http://localhost:8000](http://localhost:8000)
+## Product loop
 
----
+1. Create a project with a public GitHub URL
+2. Analysis is queued on Redis (`jobs:repository_analysis`)
+3. The AI worker clones → parses → stores entities → embeddings
+4. Open the project for Overview / Files / Q&A / Docs / Diagram
 
-## ✅ 3. Running Services (Manual Method)
+## Health checks
 
-### 🖥 Manual Next.js Setup
-```bash
-pnpm install
-cd apps/web && pnpm dev & 
-cd apps/admin && pnpm dev & 
-cd apps/landing && pnpm dev
-```
-
-### 📱 Manual Expo Setup
-```bash
-cd apps/mobile
-pnpm install
-pnpm start
-```
-
-### 🔧 Manual Backend Setup
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# OR venv\Scripts\activate (Windows)
-pip install -r requirements.txt
-uvicorn main:app --reload
-```
-
----
-
-## ✅ 4. Docker Alternative
-
-Run all services in containers:
-```bash
-docker-compose up --build
-```
-
----
-
-## ✅ 5. Common Issues
-
-* **Windows script issues?**
-  - Use Git Bash/WSL or run commands manually
-* **Lockfile problems?**
-  ```bash
-  rm -rf node_modules .pnpm-store
-  pnpm install
-  ```
-* **Expo project not found?**
-  - Verify `apps/mobile/package.json` exists
-
----
-
-## ✅ 6. Recommended Workflow
-
-1️⃣ Terminal 1: `./run-apps.sh` (or manual Next.js)  
-2️⃣ Terminal 2: `./run-mobile.sh` (or manual Expo)  
-3️⃣ Terminal 3: `cd backend && ./run-backend.sh` (or manual FastAPI)  
-
-Now you have **All Next.js apps + Expo Mobile App + FastAPI Backend running locally**. 🎉
+- Go API: `curl http://localhost:8080/health`
+- AI service: `curl http://localhost:8000/health`

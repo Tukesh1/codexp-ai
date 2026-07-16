@@ -36,13 +36,16 @@ func main() {
 
 	// Initialize services
 	authService := services.NewAuthService(db, cfg.JWTSecret, cfg.ClerkSecretKey)
-	projectService := services.NewProjectService(db, redis)
+	settingsService := services.NewSettingsService(db)
+	aiClient := services.NewAIClient(cfg.AIServiceURL)
+	projectService := services.NewProjectService(db, redis, aiClient, settingsService)
 	githubService := services.NewGitHubService(cfg.GitHubAppID, cfg.GitHubPrivateKey)
 	jobService := services.NewJobService(db, redis)
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService)
-	projectHandler := handlers.NewProjectHandler(projectService, githubService, jobService)
+	settingsHandler := handlers.NewSettingsHandler(settingsService)
+	projectHandler := handlers.NewProjectHandler(projectService, githubService, jobService, settingsService)
 	healthHandler := handlers.NewHealthHandler(db, redis)
 
 	// Setup Gin router
@@ -67,6 +70,17 @@ func main() {
 	// Health check
 	router.GET("/health", healthHandler.Health)
 
+	// Root — avoid bare "404 page not found" in the browser
+	router.GET("/", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"name":    "CodeExp AI API",
+			"status":  "ok",
+			"health":  "/health",
+			"docs":    "Use /api/v1/* with a Bearer token",
+			"web_app": "http://localhost:3000",
+		})
+	})
+
 	// API routes
 	api := router.Group("/api/v1")
 	{
@@ -82,6 +96,10 @@ func main() {
 		protected := api.Group("/")
 		protected.Use(middleware.AuthMiddleware(authService))
 		{
+			// Settings (API keys)
+			protected.GET("/settings", settingsHandler.GetSettings)
+			protected.PUT("/settings", settingsHandler.UpdateSettings)
+
 			// Projects
 			projects := protected.Group("/projects")
 			{
@@ -94,20 +112,15 @@ func main() {
 				projects.POST("/:id/webhook", projectHandler.GitHubWebhook)
 			}
 
-			// Analysis endpoints (will be implemented in later phases)
 			analysis := protected.Group("/projects/:id")
 			{
 				analysis.GET("/summary", projectHandler.GetProjectSummary)
 				analysis.GET("/files", projectHandler.GetProjectFiles)
 				analysis.GET("/search", projectHandler.SearchCode)
 				analysis.POST("/ask", projectHandler.AskQuestion)
-			}
-
-			// Export endpoints (will be implemented in later phases)
-			export := protected.Group("/projects/:id")
-			{
-				export.GET("/diagram", projectHandler.GetDependencyDiagram)
-				export.GET("/docs", projectHandler.GetGeneratedDocs)
+				analysis.GET("/diagram", projectHandler.GetDependencyDiagram)
+				analysis.GET("/docs", projectHandler.GetGeneratedDocs)
+				analysis.POST("/docs", projectHandler.GenerateDocs)
 			}
 		}
 	}

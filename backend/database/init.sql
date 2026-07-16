@@ -12,6 +12,11 @@ CREATE TABLE IF NOT EXISTS users (
     clerk_id VARCHAR(255) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     plan VARCHAR(50) DEFAULT 'free',
+    openai_api_key TEXT,
+    gemini_api_key TEXT,
+    ai_provider VARCHAR(50) DEFAULT 'openai',
+    ai_model VARCHAR(100) DEFAULT 'gpt-4o-mini',
+    settings JSONB DEFAULT '{}',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

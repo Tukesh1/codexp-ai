@@ -5,8 +5,24 @@ export type User = {
   clerk_id: string
   email: string
   plan: string
+  ai_provider?: string
+  ai_model?: string
+  has_api_key?: boolean
   created_at: string
   updated_at: string
+}
+
+export type UserSettings = {
+  email: string
+  plan: string
+  ai_provider: string
+  ai_model: string
+  has_api_key: boolean
+  has_openai_key: boolean
+  has_gemini_key: boolean
+  api_key_preview?: string
+  openai_key_preview?: string
+  gemini_key_preview?: string
 }
 
 export type Project = {
@@ -29,6 +45,7 @@ export type ProjectSummary = {
   class_count: number
   languages: Record<string, number>
   summary?: string | null
+  overview?: string | null
   last_analysis_at?: string | null
 }
 
@@ -106,6 +123,25 @@ export const api = {
     return request<User>("/api/v1/auth/me")
   },
 
+  async getSettings() {
+    return request<UserSettings>("/api/v1/settings")
+  },
+
+  async updateSettings(payload: {
+    ai_provider?: string
+    openai_api_key?: string
+    gemini_api_key?: string
+    ai_model?: string
+    clear_api_key?: boolean
+    clear_openai_key?: boolean
+    clear_gemini_key?: boolean
+  }) {
+    return request<UserSettings>("/api/v1/settings", {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    })
+  },
+
   async listProjects() {
     return request<{ projects: Project[] }>("/api/v1/projects")
   },
@@ -166,14 +202,28 @@ export const api = {
   },
 
   async getDocs(id: string) {
-    return request<{ format: string; content: string }>(`/api/v1/projects/${id}/docs`)
+    return request<{ format: string; content: string; status?: string; message?: string }>(
+      `/api/v1/projects/${id}/docs`
+    )
+  },
+
+  async generateDocs(id: string, force = false) {
+    return request<{ format: string; content: string; cached?: boolean }>(
+      `/api/v1/projects/${id}/docs`,
+      {
+        method: "POST",
+        body: JSON.stringify({ force }),
+      }
+    )
   },
 
   async getDiagram(id: string) {
     return request<{
       format: string
-      nodes: Array<{ id: string; label: string; type: string }>
-      edges: Array<{ from: string; to: string; type: string }>
+      content?: string
+      source?: string
+      nodes?: Array<{ id: string; label: string; type: string }>
+      edges?: Array<{ from: string; to: string; type: string }>
     }>(`/api/v1/projects/${id}/diagram`)
   },
 }

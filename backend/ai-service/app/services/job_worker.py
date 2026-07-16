@@ -12,14 +12,21 @@ from app.core.database import database
 from app.core.redis_client import redis_client
 from app.services.code_analyzer import CodeAnalyzer
 from app.services.embedding_service import EmbeddingService
+from app.services.llm_service import (
+    LLMService,
+    build_project_context,
+    load_user_credentials_for_project,
+    store_analysis,
+)
 
 logger = logging.getLogger(__name__)
 
 QUEUE_NAME = "jobs:repository_analysis"
+DOCS_QUEUE = "jobs:docs_generation"
 
 
 class JobWorker:
-    """Polls Redis for repository analysis jobs and processes them."""
+    """Polls Redis for repository analysis and docs jobs."""
 
     def __init__(self, model_manager):
         self.model_manager = model_manager
@@ -48,25 +55,31 @@ class JobWorker:
         while self._running:
             try:
                 raw = await redis_client.rpop(QUEUE_NAME)
-                if not raw:
-                    await asyncio.sleep(2)
+                if raw:
+                    payload = json.loads(raw) if isinstance(raw, str) else raw
+                    await self._process_analysis_job(payload)
                     continue
 
-                payload = json.loads(raw) if isinstance(raw, str) else raw
-                await self._process_job(payload)
+                raw_docs = await redis_client.rpop(DOCS_QUEUE)
+                if raw_docs:
+                    payload = json.loads(raw_docs) if isinstance(raw_docs, str) else raw_docs
+                    await self._process_docs_job(payload)
+                    continue
+
+                await asyncio.sleep(2)
             except asyncio.CancelledError:
                 break
             except Exception as e:
                 logger.exception("Job worker loop error: %s", e)
                 await asyncio.sleep(3)
 
-    async def _process_job(self, payload: Dict[str, Any]):
+    async def _process_analysis_job(self, payload: Dict[str, Any]):
         job_id = payload.get("id")
-        project_id = payload.get("project_id")
+        project_id = str(payload.get("project_id"))
         data = payload.get("data") or {}
         repo_url = data.get("repo_url")
 
-        logger.info("Processing job %s for project %s", job_id, project_id)
+        logger.info("Processing analysis job %s for project %s", job_id, project_id)
 
         if not job_id or not project_id or not repo_url:
             logger.error("Invalid job payload: %s", payload)
@@ -77,36 +90,95 @@ class JobWorker:
 
         tmp_dir = None
         try:
+            # Require user API key up front
+            creds = await load_user_credentials_for_project(project_id)
+            llm = LLMService(creds["api_key"], creds["model"], creds.get("provider", "openai"))
+
             tmp_dir = tempfile.mkdtemp(prefix="codeexp-")
             repo_path = os.path.join(tmp_dir, "repo")
 
             await self._update_job(job_id, "running", 15)
             await self._clone_repo(repo_url, repo_path)
 
-            await self._update_job(job_id, "running", 40)
+            await self._update_job(job_id, "running", 35)
             analyzer = CodeAnalyzer(self.model_manager)
             result = await analyzer.analyze_repository(repo_path, project_id)
 
-            await self._update_job(job_id, "running", 70)
+            await self._update_job(job_id, "running", 55)
             await self._generate_embeddings_for_project(project_id)
 
-            await self._update_job(job_id, "running", 90)
-            await self._store_analysis_summary(project_id, result)
+            await self._update_job(job_id, "running", 70)
+            context = await build_project_context(project_id)
+            overview = await llm.generate_overview(
+                creds["project_name"], creds["repo_url"] or repo_url, context
+            )
+            await store_analysis(
+                project_id,
+                "overview",
+                {"content": overview, "format": "markdown"},
+            )
+
+            await self._update_job(job_id, "running", 85)
+            diagram = await llm.generate_diagram(creds["project_name"], context)
+            await store_analysis(
+                project_id,
+                "diagram",
+                {"format": "mermaid", "content": diagram},
+            )
+
+            await self._update_job(job_id, "running", 95)
+            await store_analysis(
+                project_id,
+                "summary",
+                {
+                    **result,
+                    "message": overview[:500],
+                    "overview_generated": True,
+                    "diagram_generated": True,
+                },
+            )
 
             await self._update_project_status(project_id, "completed")
             await self._update_job(job_id, "completed", 100)
-            logger.info("Job %s completed successfully", job_id)
+            logger.info("Analysis job %s completed", job_id)
 
         except Exception as e:
-            logger.exception("Job %s failed: %s", job_id, e)
+            logger.exception("Analysis job %s failed: %s", job_id, e)
             await self._update_project_status(project_id, "failed")
             await self._update_job(job_id, "failed", 0, str(e))
         finally:
             if tmp_dir and os.path.isdir(tmp_dir):
                 shutil.rmtree(tmp_dir, ignore_errors=True)
 
+    async def _process_docs_job(self, payload: Dict[str, Any]):
+        job_id = payload.get("id")
+        project_id = str(payload.get("project_id"))
+        logger.info("Processing docs job %s for project %s", job_id, project_id)
+
+        if not job_id or not project_id:
+            return
+
+        await self._update_job(job_id, "running", 10)
+        try:
+            creds = await load_user_credentials_for_project(project_id)
+            llm = LLMService(creds["api_key"], creds["model"], creds.get("provider", "openai"))
+            context = await build_project_context(project_id, max_symbols=120)
+            await self._update_job(job_id, "running", 40)
+            docs = await llm.generate_docs(
+                creds["project_name"], creds["repo_url"], context
+            )
+            await store_analysis(
+                project_id,
+                "docs",
+                {"format": "markdown", "content": docs},
+            )
+            await self._update_job(job_id, "completed", 100)
+            logger.info("Docs job %s completed", job_id)
+        except Exception as e:
+            logger.exception("Docs job %s failed: %s", job_id, e)
+            await self._update_job(job_id, "failed", 0, str(e))
+
     async def _clone_repo(self, repo_url: str, destination: str):
-        # Normalize GitHub URLs (allow owner/repo shorthand)
         url = repo_url.strip()
         if not url.startswith("http") and not url.startswith("git@"):
             url = f"https://github.com/{url}.git"
@@ -176,16 +248,6 @@ class JobWorker:
         if items:
             await embedding_service.generate_and_store_embeddings(items)
 
-    async def _store_analysis_summary(self, project_id: str, result: Dict[str, Any]):
-        await database.execute(
-            """
-            INSERT INTO analyses (project_id, type, results)
-            VALUES ($1, 'summary', $2::jsonb)
-            """,
-            project_id,
-            json.dumps(result),
-        )
-
     async def _update_project_status(self, project_id: str, status: str):
         await database.execute(
             """
@@ -214,7 +276,6 @@ class JobWorker:
         existing["error_message"] = error_message
         await redis_client.set(status_key, existing, ex=86400)
 
-        # Best-effort DB sync
         try:
             await database.execute(
                 """

@@ -20,9 +20,11 @@ export type UserSettings = {
   has_api_key: boolean
   has_openai_key: boolean
   has_gemini_key: boolean
+  has_github_token: boolean
   api_key_preview?: string
   openai_key_preview?: string
   gemini_key_preview?: string
+  github_token_preview?: string
 }
 
 export type Project = {
@@ -57,6 +59,126 @@ export type FileRecord = {
   size_bytes?: number | null
   last_analyzed?: string | null
   created_at: string
+}
+
+export type FileContent = {
+  id: string
+  path: string
+  language?: string | null
+  size_bytes?: number | null
+  content?: string
+  html_url?: string
+  source?: string
+  message?: string
+  symbols?: Array<{
+    id: string
+    name: string
+    entity_type: string
+    signature?: string | null
+    summary?: string | null
+    start_line?: number
+  }>
+}
+
+export type ChatMessage = {
+  id: string
+  role: string
+  content: string
+  metadata?: unknown
+  created_at: string
+}
+
+export type ProjectInsights = {
+  languages: Array<{ language: string; file_count: number; bytes: number }>
+  extensions?: Array<{ extension: string; file_count: number; bytes: number }>
+  folders: Array<{ folder: string; file_count: number; bytes: number }>
+  largest_files?: Array<{ path: string; language: string; size_bytes: number }>
+  key_files?: Array<{ path: string; language: string; size_bytes: number; kind: string }>
+  top_functions?: Array<{ name: string; signature?: string; path: string; start_line?: number }>
+  top_classes?: Array<{ name: string; path: string; start_line?: number }>
+  activity: Array<{ date: string; jobs: number; completed: number; failed: number }>
+  total_bytes: number
+  total_files?: number
+  function_count?: number
+  class_count?: number
+  embedding_count?: number
+  chat_count?: number
+  artifacts?: { overview?: boolean; diagram?: boolean; docs?: boolean }
+  last_job_status?: string
+  last_job_at?: string
+  github?: {
+    full_name: string
+    description?: string
+    default_branch?: string
+    stars: number
+    watchers?: number
+    forks: number
+    open_issues: number
+    subscribers?: number
+    network_count?: number
+    size_kb?: number
+    language?: string
+    homepage?: string
+    topics?: string[]
+    license?: string
+    license_name?: string
+    created_at?: string
+    updated_at?: string
+    pushed_at?: string
+    html_url: string
+    clone_url?: string
+    private?: boolean
+    fork?: boolean
+    archived?: boolean
+    has_wiki?: boolean
+    has_issues?: boolean
+    has_projects?: boolean
+    has_pages?: boolean
+    visibility?: string
+  }
+  github_error?: string
+  github_languages?: Array<{ language: string; bytes: number; percent: number }>
+  github_languages_error?: string
+  contributors?: Array<{
+    login: string
+    avatar_url?: string
+    url?: string
+    contributions: number
+    type?: string
+  }>
+  contributors_error?: string
+  releases?: Array<{
+    tag: string
+    name: string
+    url: string
+    published_at?: string
+    prerelease?: boolean
+    draft?: boolean
+  }>
+  releases_error?: string
+  readme?: {
+    name?: string
+    path?: string
+    url?: string
+    size?: number
+    excerpt?: string
+  }
+  readme_error?: string
+  open_prs?: number
+  open_prs_error?: string
+  commits?: Array<{
+    sha: string
+    message: string
+    author: string
+    login?: string
+    avatar_url?: string
+    date: string
+    url: string
+  }>
+  commits_error?: string
+  commit_activity?: Array<{ date: string; count: number }>
+  recent_authors?: Array<{ name: string; count: number }>
+  github_token_configured?: boolean
 }
 
 export type Job = {
@@ -131,10 +253,12 @@ export const api = {
     ai_provider?: string
     openai_api_key?: string
     gemini_api_key?: string
+    github_token?: string
     ai_model?: string
     clear_api_key?: boolean
     clear_openai_key?: boolean
     clear_gemini_key?: boolean
+    clear_github_token?: boolean
   }) {
     return request<UserSettings>("/api/v1/settings", {
       method: "PUT",
@@ -183,6 +307,27 @@ export const api = {
 
   async getFiles(id: string) {
     return request<{ files: FileRecord[] }>(`/api/v1/projects/${id}/files`)
+  },
+
+  async getFileContent(id: string, path: string) {
+    return request<FileContent>(
+      `/api/v1/projects/${id}/files/content?path=${encodeURIComponent(path)}`
+    )
+  },
+
+  async getInsights(id: string, opts?: { github?: boolean }) {
+    const q = opts?.github ? "?github=1" : ""
+    return request<ProjectInsights>(`/api/v1/projects/${id}/insights${q}`)
+  },
+
+  async refreshGithubSection(id: string, section: string) {
+    return request<Record<string, unknown>>(
+      `/api/v1/projects/${id}/insights/github/${encodeURIComponent(section)}`
+    )
+  },
+
+  async getChat(id: string) {
+    return request<{ messages: ChatMessage[] }>(`/api/v1/projects/${id}/chat`)
   },
 
   async searchCode(id: string, q: string) {

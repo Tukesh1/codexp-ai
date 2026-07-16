@@ -20,16 +20,17 @@ func NewSettingsService(db *sql.DB) *SettingsService {
 func (s *SettingsService) GetSettings(userID uuid.UUID) (*models.UserSettings, error) {
 	var email, plan string
 	var aiModel, provider sql.NullString
-	var openaiKey, geminiKey sql.NullString
+	var openaiKey, geminiKey, githubToken sql.NullString
 
 	err := s.db.QueryRow(`
 		SELECT email, plan,
 			COALESCE(ai_provider, 'openai'),
 			COALESCE(ai_model, 'gpt-4o-mini'),
 			openai_api_key,
-			gemini_api_key
+			gemini_api_key,
+			github_token
 		FROM users WHERE id = $1
-	`, userID).Scan(&email, &plan, &provider, &aiModel, &openaiKey, &geminiKey)
+	`, userID).Scan(&email, &plan, &provider, &aiModel, &openaiKey, &geminiKey, &githubToken)
 	if err != nil {
 		return nil, fmt.Errorf("user not found")
 	}
@@ -48,6 +49,10 @@ func (s *SettingsService) GetSettings(userID uuid.UUID) (*models.UserSettings, e
 	if geminiKey.Valid && strings.TrimSpace(geminiKey.String) != "" {
 		settings.HasGeminiKey = true
 		settings.GeminiKeyPreview = maskAPIKey(geminiKey.String)
+	}
+	if githubToken.Valid && strings.TrimSpace(githubToken.String) != "" {
+		settings.HasGitHubToken = true
+		settings.GitHubTokenPreview = maskAPIKey(githubToken.String)
 	}
 
 	switch settings.AIProvider {
@@ -75,7 +80,6 @@ func (s *SettingsService) UpdateSettings(userID uuid.UUID, req *models.UpdateSet
 	}
 
 	if req.ClearOpenAI || req.ClearAPIKey {
-		// clear_api_key clears the active provider key for backwards compatibility
 		if req.ClearOpenAI {
 			_, err := s.db.Exec(`UPDATE users SET openai_api_key = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1`, userID)
 			if err != nil {
@@ -104,6 +108,13 @@ func (s *SettingsService) UpdateSettings(userID uuid.UUID, req *models.UpdateSet
 		}
 	}
 
+	if req.ClearGitHub {
+		_, err := s.db.Exec(`UPDATE users SET github_token = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $1`, userID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if req.OpenAIAPIKey != nil {
 		key := strings.TrimSpace(*req.OpenAIAPIKey)
 		if key != "" {
@@ -118,6 +129,16 @@ func (s *SettingsService) UpdateSettings(userID uuid.UUID, req *models.UpdateSet
 		key := strings.TrimSpace(*req.GeminiAPIKey)
 		if key != "" {
 			_, err := s.db.Exec(`UPDATE users SET gemini_api_key = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $1`, userID, key)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	if req.GitHubToken != nil {
+		key := strings.TrimSpace(*req.GitHubToken)
+		if key != "" {
+			_, err := s.db.Exec(`UPDATE users SET github_token = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $1`, userID, key)
 			if err != nil {
 				return nil, err
 			}
@@ -179,6 +200,19 @@ func (s *SettingsService) GetAPICredentials(userID uuid.UUID) (provider, apiKey,
 func (s *SettingsService) HasAPIKey(userID uuid.UUID) bool {
 	_, _, _, err := s.GetAPICredentials(userID)
 	return err == nil
+}
+
+// GetGitHubToken returns the user's saved GitHub personal access token, if any.
+func (s *SettingsService) GetGitHubToken(userID uuid.UUID) (string, error) {
+	var token sql.NullString
+	err := s.db.QueryRow(`SELECT github_token FROM users WHERE id = $1`, userID).Scan(&token)
+	if err != nil {
+		return "", err
+	}
+	if !token.Valid {
+		return "", nil
+	}
+	return strings.TrimSpace(token.String), nil
 }
 
 func maskAPIKey(key string) string {

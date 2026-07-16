@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS users (
     plan VARCHAR(50) DEFAULT 'free',
     openai_api_key TEXT,
     gemini_api_key TEXT,
+    github_token TEXT,
     ai_provider VARCHAR(50) DEFAULT 'openai',
     ai_model VARCHAR(100) DEFAULT 'gpt-4o-mini',
     settings JSONB DEFAULT '{}',

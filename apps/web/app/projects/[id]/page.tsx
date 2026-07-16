@@ -3,46 +3,63 @@
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
+import { MessageSquare, RefreshCw } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
+import { CodeViewer } from "@/components/code-viewer"
+import { FileTree } from "@/components/file-tree"
 import { MermaidDiagram } from "@/components/mermaid-diagram"
-import { api, type FileRecord, type Job, type Project, type ProjectSummary } from "@/lib/api"
+import { ProjectOverview } from "@/components/project-overview"
+import {
+  api,
+  type FileRecord,
+  type Job,
+  type Project,
+  type ProjectInsights,
+  type ProjectSummary,
+} from "@/lib/api"
+import { useWorkspace } from "@/lib/workspace"
 import { Button } from "@workspace/ui/components/button"
-import { Input } from "@workspace/ui/components/input"
 
-type Tab = "overview" | "files" | "qa" | "docs" | "diagram"
+type Tab = "overview" | "files" | "diagram" | "docs"
 
 export default function ProjectDetailPage() {
   const params = useParams<{ id: string }>()
   const id = params.id
+  const { setActiveProjectId, openAsk } = useWorkspace()
 
   const [tab, setTab] = useState<Tab>("overview")
   const [project, setProject] = useState<Project | null>(null)
   const [summary, setSummary] = useState<ProjectSummary | null>(null)
+  const [insights, setInsights] = useState<ProjectInsights | null>(null)
   const [files, setFiles] = useState<FileRecord[]>([])
+  const [selectedPath, setSelectedPath] = useState<string | null>(null)
   const [jobs, setJobs] = useState<Job[]>([])
   const [docs, setDocs] = useState("")
-  const [docsStatus, setDocsStatus] = useState<string>("")
+  const [docsStatus, setDocsStatus] = useState("")
   const [diagram, setDiagram] = useState<{
     format: string
     content?: string
     nodes?: Array<{ id: string; label: string; type: string }>
-    edges?: Array<{ from: string; to: string }>
   } | null>(null)
-  const [question, setQuestion] = useState("")
-  const [answer, setAnswer] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
+  useEffect(() => {
+    setActiveProjectId(id)
+  }, [id, setActiveProjectId])
+
   const refresh = useCallback(async () => {
     try {
-      const [p, s, j] = await Promise.all([
+      const [p, s, j, ins] = await Promise.all([
         api.getProject(id),
         api.getSummary(id).catch(() => null),
         api.getStatus(id).catch(() => ({ jobs: [] as Job[] })),
+        api.getInsights(id).catch(() => null),
       ])
       setProject(p)
       setSummary(s)
       setJobs(j.jobs || [])
+      setInsights(ins)
       setError(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load project")
@@ -56,14 +73,23 @@ export default function ProjectDetailPage() {
       void api.getProject(id).then(setProject).catch(() => undefined)
       if (project?.status === "analyzing" || project?.status === "completed") {
         void api.getSummary(id).then(setSummary).catch(() => undefined)
+        // Local insights only on poll — GitHub sections refresh independently in Overview
+        void api.getInsights(id).then(setInsights).catch(() => undefined)
       }
-    }, 4000)
+    }, 5000)
     return () => clearInterval(timer)
   }, [id, refresh, project?.status])
 
   useEffect(() => {
     if (tab === "files") {
-      void api.getFiles(id).then((r) => setFiles(r.files || [])).catch((e) => setError(e.message))
+      void api
+        .getFiles(id)
+        .then((r) => {
+          const list = r.files || []
+          setFiles(list)
+          if (!selectedPath && list[0]) setSelectedPath(list[0].path)
+        })
+        .catch((e) => setError(e.message))
     }
     if (tab === "docs") {
       void api
@@ -75,9 +101,9 @@ export default function ProjectDetailPage() {
         .catch((e) => setError(e.message))
     }
     if (tab === "diagram") {
-      void api.getDiagram(id).then((r) => setDiagram(r)).catch((e) => setError(e.message))
+      void api.getDiagram(id).then(setDiagram).catch((e) => setError(e.message))
     }
-  }, [tab, id])
+  }, [tab, id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function runAnalysis() {
     setBusy(true)
@@ -87,20 +113,6 @@ export default function ProjectDetailPage() {
       await refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Analyze failed")
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function ask() {
-    if (!question.trim()) return
-    setBusy(true)
-    setError(null)
-    try {
-      const res = await api.ask(id, question)
-      setAnswer(res.answer)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Q&A failed")
     } finally {
       setBusy(false)
     }
@@ -124,8 +136,6 @@ export default function ProjectDetailPage() {
     (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
   )[0]
 
-  const overviewText = summary?.overview || summary?.summary
-
   return (
     <AppShell title={project?.name || "Project"}>
       {error && (
@@ -139,10 +149,10 @@ export default function ProjectDetailPage() {
         </div>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-sm text-muted-foreground">{project?.repo_url}</p>
-          <p className="mt-1 text-sm">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0 space-y-1">
+          <p className="truncate text-sm text-muted-foreground">{project?.repo_url}</p>
+          <p className="text-sm">
             Status: <span className="font-medium capitalize">{project?.status || "…"}</span>
             {latestJob && (
               <span className="ml-3 text-muted-foreground">
@@ -152,26 +162,34 @@ export default function ProjectDetailPage() {
             )}
           </p>
         </div>
-        <Button onClick={runAnalysis} disabled={busy}>
-          {busy ? "Working…" : "Re-analyze with AI"}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => openAsk(id)}>
+            <MessageSquare className="size-4" />
+            Ask AI
+          </Button>
+          <Button onClick={runAnalysis} disabled={busy}>
+            <RefreshCw className={`size-4 ${busy ? "animate-spin" : ""}`} />
+            {busy ? "Working…" : "Re-analyze"}
+          </Button>
+        </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 border-b pb-2">
+      <div className="flex flex-wrap gap-1 border-b">
         {(
           [
             ["overview", "Overview"],
-            ["files", "Files"],
+            ["files", "Code"],
             ["diagram", "Diagram"],
             ["docs", "Docs"],
-            ["qa", "Q&A"],
           ] as const
         ).map(([key, label]) => (
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`rounded-md px-3 py-1.5 text-sm transition-colors ${
-              tab === key ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+            className={`relative px-3 py-2.5 text-sm transition-colors ${
+              tab === key
+                ? "font-medium text-foreground after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-foreground"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {label}
@@ -180,61 +198,24 @@ export default function ProjectDetailPage() {
       </div>
 
       {tab === "overview" && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Metric label="Files" value={summary?.file_count ?? 0} />
-          <Metric label="Functions" value={summary?.function_count ?? 0} />
-          <Metric label="Classes" value={summary?.class_count ?? 0} />
-          <Metric label="Languages" value={Object.keys(summary?.languages || {}).length} />
-          <div className="rounded-xl border bg-card p-4 sm:col-span-2 lg:col-span-4">
-            <h3 className="font-medium">AI Overview</h3>
-            <div className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">
-              {overviewText ||
-                (project?.status === "analyzing"
-                  ? "AI is analyzing this repository…"
-                  : "Run analysis to generate an AI overview.")}
-            </div>
-            {summary?.languages && (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {Object.entries(summary.languages).map(([lang, count]) => (
-                  <span key={lang} className="rounded-full bg-muted px-2.5 py-1 text-xs">
-                    {lang}: {count}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+        <ProjectOverview projectId={id} summary={summary} insights={insights} />
       )}
 
       {tab === "files" && (
-        <div className="overflow-hidden rounded-xl border">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50 text-left">
-              <tr>
-                <th className="px-4 py-3 font-medium">Path</th>
-                <th className="px-4 py-3 font-medium">Language</th>
-                <th className="px-4 py-3 font-medium">Size</th>
-              </tr>
-            </thead>
-            <tbody>
-              {files.map((f) => (
-                <tr key={f.id} className="border-t">
-                  <td className="px-4 py-2 font-mono text-xs">{f.path}</td>
-                  <td className="px-4 py-2 capitalize">{f.language || "—"}</td>
-                  <td className="px-4 py-2 text-muted-foreground">
-                    {f.size_bytes != null ? `${f.size_bytes} B` : "—"}
-                  </td>
-                </tr>
-              ))}
-              {files.length === 0 && (
-                <tr>
-                  <td colSpan={3} className="px-4 py-8 text-center text-muted-foreground">
-                    No files yet. Start an analysis.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <div className="grid min-h-[560px] overflow-hidden rounded-xl border lg:grid-cols-[280px_1fr]">
+          <div className="border-b bg-muted/20 lg:border-b-0 lg:border-r">
+            <div className="border-b px-3 py-2">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Files ({files.length})
+              </p>
+            </div>
+            <div className="max-h-[280px] overflow-y-auto lg:max-h-[calc(100vh-280px)]">
+              <FileTree files={files} selectedPath={selectedPath} onSelect={setSelectedPath} />
+            </div>
+          </div>
+          <div className="min-h-[360px] bg-card">
+            <CodeViewer projectId={id} path={selectedPath} />
+          </div>
         </div>
       )}
 
@@ -274,44 +255,11 @@ export default function ProjectDetailPage() {
               {busy ? "Generating…" : docs ? "Regenerate docs" : "Generate docs"}
             </Button>
           </div>
-          <pre className="overflow-auto whitespace-pre-wrap rounded-xl border bg-card p-4 font-mono text-sm">
+          <pre className="overflow-auto whitespace-pre-wrap rounded-xl border bg-card p-4 font-mono text-sm leading-relaxed">
             {docs || "No documentation yet."}
           </pre>
         </div>
       )}
-
-      {tab === "qa" && (
-        <div className="mx-auto w-full max-w-2xl space-y-4">
-          <div className="flex gap-2">
-            <Input
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              placeholder="Ask about this codebase…"
-              onKeyDown={(e) => e.key === "Enter" && void ask()}
-            />
-            <Button onClick={ask} disabled={busy}>
-              Ask
-            </Button>
-          </div>
-          {answer && (
-            <div className="rounded-xl border bg-card p-4">
-              <h3 className="mb-2 text-sm font-medium">Answer</h3>
-              <pre className="whitespace-pre-wrap font-sans text-sm text-muted-foreground">
-                {answer}
-              </pre>
-            </div>
-          )}
-        </div>
-      )}
     </AppShell>
-  )
-}
-
-function Metric({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-xl border bg-card p-4">
-      <p className="text-sm text-muted-foreground">{label}</p>
-      <p className="mt-1 text-2xl font-semibold">{value}</p>
-    </div>
   )
 }

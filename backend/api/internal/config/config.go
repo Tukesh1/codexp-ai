@@ -22,6 +22,7 @@ type Config struct {
 	StripeWebhookSecret string
 	SentryDSN           string
 	AIServiceURL        string
+	GitHubToken         string
 }
 
 func Load() *Config {
@@ -43,6 +44,7 @@ func Load() *Config {
 		StripeWebhookSecret: getEnv("STRIPE_WEBHOOK_SECRET", ""),
 		SentryDSN:           getEnv("SENTRY_DSN", ""),
 		AIServiceURL:        getEnv("AI_SERVICE_URL", "http://localhost:8000"),
+		GitHubToken:         getEnv("GITHUB_TOKEN", getEnv("GH_TOKEN", "")),
 	}
 }
 

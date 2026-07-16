@@ -26,7 +26,7 @@ type Config struct {
 func Load() *Config {
 	return &Config{
 		Environment:         getEnv("GO_ENV", "development"),
-		DatabaseURL:         getEnv("DATABASE_URL", "postgresql://codeexp:secure_password@localhost:5432/codeexp"),
+		DatabaseURL:         getEnv("DATABASE_URL", "postgresql://codeexp:secure_password@localhost:5432/codeexp?sslmode=disable"),
 		RedisURL:            getEnv("REDIS_URL", "redis://localhost:6379"),
 		JWTSecret:           getEnv("JWT_SECRET", "your-jwt-secret"),
 		ClerkSecretKey:      getEnv("CLERK_SECRET_KEY", ""),

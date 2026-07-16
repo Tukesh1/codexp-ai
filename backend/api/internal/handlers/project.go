@@ -133,11 +133,9 @@ func (h *ProjectHandler) AnalyzeProject(c *gin.Context) {
 
 	var req models.AnalyzeProjectRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		// If no body provided, use defaults
 		req.ForceReAnalysis = false
 	}
 
-	// Verify project exists and user owns it
 	project, err := h.projectService.GetProject(userUUID, projectID)
 	if err != nil {
 		if err.Error() == "project not found" {
@@ -148,16 +146,19 @@ func (h *ProjectHandler) AnalyzeProject(c *gin.Context) {
 		return
 	}
 
-	// Update project status to analyzing
 	err = h.projectService.UpdateProjectStatus(projectID, "analyzing")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update project status"})
 		return
 	}
 
-	// Queue analysis job
+	repoURL := ""
+	if project.RepoURL != nil {
+		repoURL = *project.RepoURL
+	}
+
 	jobData := map[string]interface{}{
-		"repo_url":         project.RepoURL,
+		"repo_url":         repoURL,
 		"force_reanalysis": req.ForceReAnalysis,
 	}
 
@@ -191,31 +192,123 @@ func (h *ProjectHandler) GetAnalysisStatus(c *gin.Context) {
 }
 
 func (h *ProjectHandler) GitHubWebhook(c *gin.Context) {
-	// TODO: Implement GitHub webhook handling for repository updates
 	c.JSON(http.StatusOK, gin.H{"message": "Webhook received"})
 }
 
-// Placeholder handlers for future implementation
 func (h *ProjectHandler) GetProjectSummary(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, gin.H{"error": "Not implemented yet"})
+	userUUID, projectID, ok := h.parseIDs(c)
+	if !ok {
+		return
+	}
+
+	summary, err := h.projectService.GetProjectSummary(userUUID, projectID)
+	if err != nil {
+		h.writeProjectError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, summary)
 }
 
 func (h *ProjectHandler) GetProjectFiles(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, gin.H{"error": "Not implemented yet"})
+	userUUID, projectID, ok := h.parseIDs(c)
+	if !ok {
+		return
+	}
+
+	files, err := h.projectService.GetProjectFiles(userUUID, projectID)
+	if err != nil {
+		h.writeProjectError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"files": files})
 }
 
 func (h *ProjectHandler) SearchCode(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, gin.H{"error": "Not implemented yet"})
+	userUUID, projectID, ok := h.parseIDs(c)
+	if !ok {
+		return
+	}
+
+	q := c.Query("q")
+	if q == "" {
+		q = c.Query("query")
+	}
+
+	results, err := h.projectService.SearchCode(userUUID, projectID, q)
+	if err != nil {
+		h.writeProjectError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"results": results})
 }
 
 func (h *ProjectHandler) AskQuestion(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, gin.H{"error": "Not implemented yet"})
+	userUUID, projectID, ok := h.parseIDs(c)
+	if !ok {
+		return
+	}
+
+	var req models.AskQuestionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	resp, err := h.projectService.AskQuestion(userUUID, projectID, req.Question)
+	if err != nil {
+		h.writeProjectError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, resp)
 }
 
 func (h *ProjectHandler) GetDependencyDiagram(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, gin.H{"error": "Not implemented yet"})
+	userUUID, projectID, ok := h.parseIDs(c)
+	if !ok {
+		return
+	}
+
+	diagram, err := h.projectService.GetDependencyDiagram(userUUID, projectID)
+	if err != nil {
+		h.writeProjectError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, diagram)
 }
 
 func (h *ProjectHandler) GetGeneratedDocs(c *gin.Context) {
-	c.JSON(http.StatusNotImplemented, gin.H{"error": "Not implemented yet"})
+	userUUID, projectID, ok := h.parseIDs(c)
+	if !ok {
+		return
+	}
+
+	docs, err := h.projectService.GetGeneratedDocs(userUUID, projectID)
+	if err != nil {
+		h.writeProjectError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, docs)
+}
+
+func (h *ProjectHandler) parseIDs(c *gin.Context) (uuid.UUID, uuid.UUID, bool) {
+	userID, _ := c.Get("userID")
+	userUUID, err := uuid.Parse(userID.(string))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return uuid.Nil, uuid.Nil, false
+	}
+	projectID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project ID"})
+		return uuid.Nil, uuid.Nil, false
+	}
+	return userUUID, projectID, true
+}
+
+func (h *ProjectHandler) writeProjectError(c *gin.Context, err error) {
+	if err.Error() == "project not found" {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
+		return
+	}
+	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 }

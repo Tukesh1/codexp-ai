@@ -18,7 +18,8 @@ class Database:
                 settings.DATABASE_URL,
                 min_size=5,
                 max_size=20,
-                command_timeout=60
+                command_timeout=60,
+                ssl=False,
             )
             self.is_connected = True
             logger.info("Database connection pool created")

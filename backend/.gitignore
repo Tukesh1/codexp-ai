@@ -52,8 +52,8 @@ logs/
 *.sqlite
 *.sqlite3
 
-# AI Model cache
-models/
+# AI Model cache (downloaded weights — not source packages)
+ai-service/models/
 model_cache/
 *.model
 *.pkl
@@ -68,7 +68,9 @@ temp/
 # Go specific (for api service)
 api/main
 api/*.exe
-api/go.sum
+
+# Local built binaries
+/bin/
 
 # Docker
 .dockerignore

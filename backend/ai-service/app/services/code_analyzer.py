@@ -68,7 +68,7 @@ class CodeAnalyzer:
             for file_path in code_files:
                 try:
                     # Analyze individual file
-                    file_analysis = await self._analyze_file(file_path, project_id)
+                    file_analysis = await self._analyze_file(file_path, project_id, repo_root=repo_path)
                     functions_count += len(file_analysis.get("functions", []))
                     classes_count += len(file_analysis.get("classes", []))
                     
@@ -90,14 +90,22 @@ class CodeAnalyzer:
             logger.error(f"Repository analysis failed: {e}")
             raise
     
-    async def _analyze_file(self, file_path: str, project_id: str) -> Dict[str, Any]:
+    async def _analyze_file(self, file_path: str, project_id: str, repo_root: str = None) -> Dict[str, Any]:
         """Analyze a single code file"""
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                 content = f.read()
             
             # Detect language from file extension
             language = self._detect_file_language(file_path)
+
+            # Prefer relative path for storage/display
+            store_path = file_path
+            if repo_root:
+                try:
+                    store_path = os.path.relpath(file_path, repo_root)
+                except ValueError:
+                    store_path = file_path
             
             # Extract functions and classes (simplified)
             functions = self._extract_functions(content, language)
@@ -106,7 +114,7 @@ class CodeAnalyzer:
             # Store file information in database
             await self._store_file_analysis(
                 project_id=project_id,
-                file_path=file_path,
+                file_path=store_path,
                 language=language,
                 content=content,
                 functions=functions,
@@ -269,7 +277,6 @@ class CodeAnalyzer:
                 func_query = """
                     INSERT INTO functions (file_id, name, signature, start_line)
                     VALUES ($1, $2, $3, $4)
-                    ON CONFLICT DO NOTHING
                 """
                 await database.execute(
                     func_query,
@@ -284,7 +291,6 @@ class CodeAnalyzer:
                 class_query = """
                     INSERT INTO classes (file_id, name, start_line)
                     VALUES ($1, $2, $3)
-                    ON CONFLICT DO NOTHING
                 """
                 await database.execute(
                     class_query,

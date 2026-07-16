@@ -23,18 +23,23 @@ class ModelManager:
         try:
             # Create model cache directory
             os.makedirs(settings.MODEL_CACHE_DIR, exist_ok=True)
-            
-            # Load embedding model
+
+            skip_heavy = os.getenv("SKIP_HEAVY_MODELS", "false").lower() in {"1", "true", "yes"}
+
+            # Load embedding model (required for RAG)
             await self._load_embedding_model()
-            
-            # Load code summarization model
-            await self._load_summarization_model()
-            
-            # Load code generation model (for future use)
-            # await self._load_generation_model()
-            
-            logger.info("All models loaded successfully")
-            
+
+            # Summarization model is optional / heavy — skip in lightweight mode
+            if not skip_heavy:
+                try:
+                    await self._load_summarization_model()
+                except Exception as e:
+                    logger.warning(f"Summarization model unavailable, using heuristics: {e}")
+            else:
+                logger.info("SKIP_HEAVY_MODELS enabled — skipping summarization model")
+
+            logger.info("Model loading complete")
+
         except Exception as e:
             logger.error(f"Failed to load models: {e}")
             raise

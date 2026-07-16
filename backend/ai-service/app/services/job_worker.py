@@ -1,0 +1,231 @@
+"""Background job worker that consumes Redis analysis queues."""
+
+import asyncio
+import json
+import logging
+import os
+import shutil
+import tempfile
+from typing import Any, Dict, Optional
+
+from app.core.database import database
+from app.core.redis_client import redis_client
+from app.services.code_analyzer import CodeAnalyzer
+from app.services.embedding_service import EmbeddingService
+
+logger = logging.getLogger(__name__)
+
+QUEUE_NAME = "jobs:repository_analysis"
+
+
+class JobWorker:
+    """Polls Redis for repository analysis jobs and processes them."""
+
+    def __init__(self, model_manager):
+        self.model_manager = model_manager
+        self._running = False
+        self._task: Optional[asyncio.Task] = None
+
+    async def start(self):
+        if self._running:
+            return
+        self._running = True
+        self._task = asyncio.create_task(self._loop())
+        logger.info("Job worker started")
+
+    async def stop(self):
+        self._running = False
+        if self._task:
+            self._task.cancel()
+            try:
+                await self._task
+            except asyncio.CancelledError:
+                pass
+            self._task = None
+        logger.info("Job worker stopped")
+
+    async def _loop(self):
+        while self._running:
+            try:
+                raw = await redis_client.rpop(QUEUE_NAME)
+                if not raw:
+                    await asyncio.sleep(2)
+                    continue
+
+                payload = json.loads(raw) if isinstance(raw, str) else raw
+                await self._process_job(payload)
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.exception("Job worker loop error: %s", e)
+                await asyncio.sleep(3)
+
+    async def _process_job(self, payload: Dict[str, Any]):
+        job_id = payload.get("id")
+        project_id = payload.get("project_id")
+        data = payload.get("data") or {}
+        repo_url = data.get("repo_url")
+
+        logger.info("Processing job %s for project %s", job_id, project_id)
+
+        if not job_id or not project_id or not repo_url:
+            logger.error("Invalid job payload: %s", payload)
+            return
+
+        await self._update_job(job_id, "running", 5)
+        await self._update_project_status(project_id, "analyzing")
+
+        tmp_dir = None
+        try:
+            tmp_dir = tempfile.mkdtemp(prefix="codeexp-")
+            repo_path = os.path.join(tmp_dir, "repo")
+
+            await self._update_job(job_id, "running", 15)
+            await self._clone_repo(repo_url, repo_path)
+
+            await self._update_job(job_id, "running", 40)
+            analyzer = CodeAnalyzer(self.model_manager)
+            result = await analyzer.analyze_repository(repo_path, project_id)
+
+            await self._update_job(job_id, "running", 70)
+            await self._generate_embeddings_for_project(project_id)
+
+            await self._update_job(job_id, "running", 90)
+            await self._store_analysis_summary(project_id, result)
+
+            await self._update_project_status(project_id, "completed")
+            await self._update_job(job_id, "completed", 100)
+            logger.info("Job %s completed successfully", job_id)
+
+        except Exception as e:
+            logger.exception("Job %s failed: %s", job_id, e)
+            await self._update_project_status(project_id, "failed")
+            await self._update_job(job_id, "failed", 0, str(e))
+        finally:
+            if tmp_dir and os.path.isdir(tmp_dir):
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    async def _clone_repo(self, repo_url: str, destination: str):
+        # Normalize GitHub URLs (allow owner/repo shorthand)
+        url = repo_url.strip()
+        if not url.startswith("http") and not url.startswith("git@"):
+            url = f"https://github.com/{url}.git"
+
+        process = await asyncio.create_subprocess_exec(
+            "git",
+            "clone",
+            "--depth=1",
+            url,
+            destination,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        _, stderr = await process.communicate()
+        if process.returncode != 0:
+            raise RuntimeError(f"git clone failed: {stderr.decode().strip()}")
+
+    async def _generate_embeddings_for_project(self, project_id: str):
+        embedding_service = EmbeddingService(self.model_manager)
+
+        functions = await database.fetch(
+            """
+            SELECT f.id, f.name, f.signature, fl.language, fl.path
+            FROM functions f
+            JOIN files fl ON fl.id = f.file_id
+            WHERE fl.project_id = $1
+            LIMIT 500
+            """,
+            project_id,
+        )
+
+        items = []
+        for row in functions:
+            text = embedding_service.preprocess_code_for_embedding(
+                row["signature"] or row["name"],
+                row["language"] or "unknown",
+                row["name"],
+            )
+            items.append(
+                {
+                    "content_type": "function",
+                    "content_id": str(row["id"]),
+                    "text": text,
+                }
+            )
+
+        classes = await database.fetch(
+            """
+            SELECT c.id, c.name, fl.language
+            FROM classes c
+            JOIN files fl ON fl.id = c.file_id
+            WHERE fl.project_id = $1
+            LIMIT 200
+            """,
+            project_id,
+        )
+        for row in classes:
+            text = f"{row['language'] or 'code'} class {row['name']}"
+            items.append(
+                {
+                    "content_type": "class",
+                    "content_id": str(row["id"]),
+                    "text": text,
+                }
+            )
+
+        if items:
+            await embedding_service.generate_and_store_embeddings(items)
+
+    async def _store_analysis_summary(self, project_id: str, result: Dict[str, Any]):
+        await database.execute(
+            """
+            INSERT INTO analyses (project_id, type, results)
+            VALUES ($1, 'summary', $2::jsonb)
+            """,
+            project_id,
+            json.dumps(result),
+        )
+
+    async def _update_project_status(self, project_id: str, status: str):
+        await database.execute(
+            """
+            UPDATE projects
+            SET status = $1, updated_at = CURRENT_TIMESTAMP
+            WHERE id = $2
+            """,
+            status,
+            project_id,
+        )
+
+    async def _update_job(
+        self,
+        job_id: str,
+        status: str,
+        progress: int,
+        error_message: Optional[str] = None,
+    ):
+        status_key = f"job_status:{job_id}"
+        existing = await redis_client.get(status_key, parse_json=True)
+        if not isinstance(existing, dict):
+            existing = {"id": job_id}
+
+        existing["status"] = status
+        existing["progress"] = progress
+        existing["error_message"] = error_message
+        await redis_client.set(status_key, existing, ex=86400)
+
+        # Best-effort DB sync
+        try:
+            await database.execute(
+                """
+                UPDATE jobs
+                SET status = $2, progress = $3, error_message = $4, updated_at = CURRENT_TIMESTAMP
+                WHERE id = $1::uuid
+                """,
+                job_id,
+                status,
+                progress,
+                error_message,
+            )
+        except Exception as e:
+            logger.warning("Failed to sync job to DB: %s", e)

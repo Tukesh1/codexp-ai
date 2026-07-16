@@ -1,10 +1,14 @@
 package handlers
 
 import (
+	"encoding/json"
+	"io"
 	"net/http"
 
+	"github.com/Tukesh1/codexp-ai/backend/api/internal/models"
 	"github.com/Tukesh1/codexp-ai/backend/api/internal/services"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type AuthHandler struct {
@@ -17,43 +21,53 @@ func NewAuthHandler(authService *services.AuthService) *AuthHandler {
 	}
 }
 
-// ClerkWebhook handles Clerk webhook events for user management
-func (h *AuthHandler) ClerkWebhook(c *gin.Context) {
-	// TODO: Implement Clerk webhook handling
-	// This will handle user creation, updates, deletions from Clerk
-
-	var payload map[string]interface{}
-	if err := c.ShouldBindJSON(&payload); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON payload"})
+// DevLogin issues a JWT for local development without Clerk.
+func (h *AuthHandler) DevLogin(c *gin.Context) {
+	var req models.DevLoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Validate webhook signature
-	signature := c.GetHeader("svix-signature")
-	body, _ := c.GetRawData()
+	resp, err := h.authService.DevLogin(req.Email, req.Name)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
+	c.JSON(http.StatusOK, resp)
+}
+
+// ClerkWebhook handles Clerk webhook events for user management
+func (h *AuthHandler) ClerkWebhook(c *gin.Context) {
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read body"})
+		return
+	}
+
+	signature := c.GetHeader("svix-signature")
 	if err := h.authService.ValidateClerkWebhook(body, signature); err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid webhook signature"})
 		return
 	}
 
-	// Process webhook event
-	eventType, exists := payload["type"].(string)
-	if !exists {
+	var payload map[string]interface{}
+	if err := json.Unmarshal(body, &payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON payload"})
+		return
+	}
+
+	eventType, _ := payload["type"].(string)
+	data, _ := payload["data"].(map[string]interface{})
+	if eventType == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing event type"})
 		return
 	}
 
-	switch eventType {
-	case "user.created":
-		// Handle user creation
-		// Extract user data and create user in database
-	case "user.updated":
-		// Handle user updates
-	case "user.deleted":
-		// Handle user deletion
-	default:
-		// Unknown event type, log and continue
+	if err := h.authService.HandleClerkEvent(eventType, data); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Webhook processed successfully"})
@@ -67,10 +81,17 @@ func (h *AuthHandler) GetMe(c *gin.Context) {
 		return
 	}
 
-	// TODO: Fetch user from database
-	// For now, return basic info
-	c.JSON(http.StatusOK, gin.H{
-		"user_id": userID,
-		"message": "User authenticated successfully",
-	})
+	uid, err := uuid.Parse(userID.(string))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	user, err := h.authService.GetUser(uid)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
 }

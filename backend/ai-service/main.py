@@ -41,11 +41,20 @@ async def lifespan(app: FastAPI):
     await model_manager.load_models()
     app.state.model_manager = model_manager
     logger.info("Models loaded successfully")
+
+    # Start background job worker
+    from app.services.job_worker import JobWorker
+    job_worker = JobWorker(model_manager)
+    await job_worker.start()
+    app.state.job_worker = job_worker
+    logger.info("Job worker started")
     
     yield
     
     # Shutdown
     logger.info("Shutting down AI Service...")
+    if hasattr(app.state, "job_worker"):
+        await app.state.job_worker.stop()
     await database.disconnect()
     await redis_client.close()
     logger.info("AI Service shutdown complete")

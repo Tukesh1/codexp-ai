@@ -38,58 +38,64 @@ class EmbeddingService:
     async def store_embeddings(self, content_type: str, content_id: str, embedding: List[float]):
         """Store embedding in database"""
         try:
+            # asyncpg needs the vector as a string literal for pgvector
+            vector_str = "[" + ",".join(str(float(x)) for x in embedding) + "]"
             query = """
                 INSERT INTO embeddings (content_type, content_id, vector)
-                VALUES ($1, $2, $3)
+                VALUES ($1, $2::uuid, $3::vector)
                 ON CONFLICT (content_type, content_id) 
-                DO UPDATE SET vector = $3
+                DO UPDATE SET vector = EXCLUDED.vector
             """
-            
-            await database.execute(query, content_type, content_id, embedding)
-            
+
+            await database.execute(query, content_type, content_id, vector_str)
+
         except Exception as e:
             logger.error(f"Failed to store embedding: {e}")
             raise
-    
-    async def search_similar(self, query_embedding: List[float], 
-                           content_type: str = None, 
+
+    async def search_similar(self, query_embedding: List[float],
+                           content_type: str = None,
                            limit: int = 10,
                            threshold: float = 0.7) -> List[Dict[str, Any]]:
         """Search for similar embeddings using cosine similarity"""
         try:
-            # Build query with optional content type filter
-            where_clause = ""
-            params = [query_embedding, limit]
-            
+            vector_str = "[" + ",".join(str(float(x)) for x in query_embedding) + "]"
+
             if content_type:
-                where_clause = "WHERE content_type = $3"
-                params.append(content_type)
-            
-            query = f"""
-                SELECT 
-                    content_type,
-                    content_id,
-                    1 - (vector <=> $1) as similarity
-                FROM embeddings
-                {where_clause}
-                ORDER BY vector <=> $1
-                LIMIT $2
-            """
-            
-            results = await database.fetch(query, *params)
-            
-            # Filter by threshold and format results
+                query = """
+                    SELECT
+                        content_type,
+                        content_id,
+                        1 - (vector <=> $1::vector) as similarity
+                    FROM embeddings
+                    WHERE content_type = $3
+                    ORDER BY vector <=> $1::vector
+                    LIMIT $2
+                """
+                results = await database.fetch(query, vector_str, limit, content_type)
+            else:
+                query = """
+                    SELECT
+                        content_type,
+                        content_id,
+                        1 - (vector <=> $1::vector) as similarity
+                    FROM embeddings
+                    ORDER BY vector <=> $1::vector
+                    LIMIT $2
+                """
+                results = await database.fetch(query, vector_str, limit)
+
             similar_items = []
             for row in results:
-                if row['similarity'] >= threshold:
+                if row["similarity"] >= threshold:
                     similar_items.append({
-                        'content_type': row['content_type'],
-                        'content_id': row['content_id'],
-                        'similarity': float(row['similarity'])
+                        "content_type": row["content_type"],
+                        "content_id": str(row["content_id"]),
+                        "similarity": float(row["similarity"]),
                     })
-            
+
             return similar_items
-            
+
         except Exception as e:
             logger.error(f"Similarity search failed: {e}")
             raise

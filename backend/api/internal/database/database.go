@@ -118,7 +118,8 @@ func runMigrations(db *sql.DB) error {
 			content_type VARCHAR(50) NOT NULL, -- 'function', 'class', 'file'
 			content_id UUID NOT NULL,
 			vector vector(384), -- sentence-transformers/all-MiniLM-L6-v2 dimension
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE(content_type, content_id)
 		);
 		`,
 		`
@@ -142,6 +143,17 @@ func runMigrations(db *sql.DB) error {
 			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);
 		`,
+		`
+		CREATE TABLE IF NOT EXISTS chat_messages (
+			id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+			project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+			user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+			role VARCHAR(20) NOT NULL,
+			content TEXT NOT NULL,
+			metadata JSONB DEFAULT '{}',
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		);
+		`,
 		`CREATE INDEX IF NOT EXISTS idx_users_clerk_id ON users(clerk_id);`,
 		`CREATE INDEX IF NOT EXISTS idx_projects_user_id ON projects(user_id);`,
 		`CREATE INDEX IF NOT EXISTS idx_files_project_id ON files(project_id);`,
@@ -150,6 +162,7 @@ func runMigrations(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_embeddings_content ON embeddings(content_type, content_id);`,
 		`CREATE INDEX IF NOT EXISTS idx_jobs_project_id ON jobs(project_id);`,
 		`CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);`,
+		`CREATE INDEX IF NOT EXISTS idx_chat_messages_project_id ON chat_messages(project_id);`,
 	}
 
 	for _, migration := range migrations {

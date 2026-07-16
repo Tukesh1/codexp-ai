@@ -35,10 +35,10 @@ func main() {
 	defer redis.Close()
 
 	// Initialize services
-	authService := services.NewAuthService(cfg.JWTSecret, cfg.ClerkSecretKey)
+	authService := services.NewAuthService(db, cfg.JWTSecret, cfg.ClerkSecretKey)
 	projectService := services.NewProjectService(db, redis)
 	githubService := services.NewGitHubService(cfg.GitHubAppID, cfg.GitHubPrivateKey)
-	jobService := services.NewJobService(redis)
+	jobService := services.NewJobService(db, redis)
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService)
@@ -54,7 +54,12 @@ func main() {
 
 	// CORS configuration
 	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowOrigins = []string{"http://localhost:3000", "https://*.vercel.app"}
+	corsConfig.AllowOrigins = []string{
+		"http://localhost:3000",
+		"http://localhost:3001",
+		"http://localhost:3002",
+		"https://*.vercel.app",
+	}
 	corsConfig.AllowCredentials = true
 	corsConfig.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization"}
 	router.Use(cors.New(corsConfig))
@@ -68,6 +73,7 @@ func main() {
 		// Auth routes
 		auth := api.Group("/auth")
 		{
+			auth.POST("/dev-login", authHandler.DevLogin)
 			auth.POST("/webhook", authHandler.ClerkWebhook)
 			auth.GET("/me", middleware.AuthMiddleware(authService), authHandler.GetMe)
 		}

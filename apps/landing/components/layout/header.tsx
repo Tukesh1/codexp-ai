@@ -80,7 +80,7 @@ export function Header() {
 
                 {/* Sign in - Desktop */}
                 <Link
-                    href="/signin"
+                    href="http://localhost:3000/login"
                     className="text-sm font-medium pr-2 border-l-[1px] border-[#2C2C2C] pl-4 hidden md:block text-[#878787] hover:text-[#F5F5F3] transition-colors"
                 >
                     Sign in
@@ -107,7 +107,7 @@ export function Header() {
 
                             <div className="pt-4 border-t border-[#2C2C2C]">
                                 <Link
-                                    href="/signin"
+                                    href="http://localhost:3000/login"
                                     className="block text-[#878787] hover:text-[#F5F5F3] transition-colors text-sm py-2"
                                 >
                                     Sign in

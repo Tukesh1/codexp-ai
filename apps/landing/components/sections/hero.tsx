@@ -33,13 +33,13 @@ export function Hero() {
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 pt-4">
               <Link
-                href="/demo"
+                href="http://localhost:3000/login"
                 className="inline-flex items-center justify-center px-6 py-3 bg-[#F5F5F3] text-[#0C0C0C] text-sm font-medium hover:bg-[#E5E5E3] transition-colors border border-[#E5E5E3]"
               >
-                Try Live Demo
+                Get Started Free
               </Link>
               <Link
-                href="/github"
+                href="https://github.com/Tukesh1/codexp-ai"
                 className="inline-flex items-center justify-center px-6 py-3 border border-[#2C2C2C] text-[#F5F5F3] text-sm font-medium hover:bg-[#1A1A1A] transition-colors"
               >
                 View on GitHub

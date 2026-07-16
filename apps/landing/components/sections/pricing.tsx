@@ -102,7 +102,7 @@ export function Pricing() {
                 </div>
 
                 <Link
-                  href="/signup"
+                  href="http://localhost:3000/login"
                   className={`w-full py-3 px-6 text-center font-medium transition-colors ${
                     plan.popular
                       ? 'bg-white text-black hover:bg-gray-100'

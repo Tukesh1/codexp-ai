@@ -41,17 +41,17 @@ export function CTA() {
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
             <Link
-              href="/signup"
+              href="http://localhost:3000/login"
               className="bg-white text-slate-900 px-8 py-4 rounded-lg hover:bg-white/95 transition-all duration-300 flex items-center space-x-2 text-lg font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1"
             >
               <span>Start analyzing</span>
               <ArrowRight className="w-5 h-5" />
             </Link>
             <Link
-              href="/demo"
+              href="http://localhost:3000/login"
               className="border border-white/20 text-white px-8 py-4 rounded-lg hover:bg-white/5 transition-all duration-300 text-lg font-medium backdrop-blur-md"
             >
-              Try live demo
+              Open dashboard
             </Link>
           </div>
 

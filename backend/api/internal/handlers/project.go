@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/Tukesh1/codexp-ai/backend/api/internal/models"
 	"github.com/Tukesh1/codexp-ai/backend/api/internal/services"
@@ -10,16 +11,23 @@ import (
 )
 
 type ProjectHandler struct {
-	projectService *services.ProjectService
-	githubService  *services.GitHubService
-	jobService     *services.JobService
+	projectService  *services.ProjectService
+	githubService   *services.GitHubService
+	jobService      *services.JobService
+	settingsService *services.SettingsService
 }
 
-func NewProjectHandler(projectService *services.ProjectService, githubService *services.GitHubService, jobService *services.JobService) *ProjectHandler {
+func NewProjectHandler(
+	projectService *services.ProjectService,
+	githubService *services.GitHubService,
+	jobService *services.JobService,
+	settingsService *services.SettingsService,
+) *ProjectHandler {
 	return &ProjectHandler{
-		projectService: projectService,
-		githubService:  githubService,
-		jobService:     jobService,
+		projectService:  projectService,
+		githubService:   githubService,
+		jobService:      jobService,
+		settingsService: settingsService,
 	}
 }
 
@@ -146,6 +154,14 @@ func (h *ProjectHandler) AnalyzeProject(c *gin.Context) {
 		return
 	}
 
+	if !h.settingsService.HasAPIKey(userUUID) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "API key required. Add an OpenAI or Gemini key in Settings before analyzing.",
+			"code":  "api_key_required",
+		})
+		return
+	}
+
 	err = h.projectService.UpdateProjectStatus(projectID, "analyzing")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update project status"})
@@ -160,6 +176,7 @@ func (h *ProjectHandler) AnalyzeProject(c *gin.Context) {
 	jobData := map[string]interface{}{
 		"repo_url":         repoURL,
 		"force_reanalysis": req.ForceReAnalysis,
+		"user_id":          userUUID.String(),
 	}
 
 	job, err := h.jobService.QueueJob("repository_analysis", projectID, jobData)
@@ -256,7 +273,14 @@ func (h *ProjectHandler) AskQuestion(c *gin.Context) {
 
 	resp, err := h.projectService.AskQuestion(userUUID, projectID, req.Question)
 	if err != nil {
-		h.writeProjectError(c, err)
+		status := http.StatusInternalServerError
+		if strings.Contains(err.Error(), "api key") {
+			status = http.StatusBadRequest
+		}
+		if err.Error() == "project not found" {
+			status = http.StatusNotFound
+		}
+		c.JSON(status, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, resp)
@@ -285,6 +309,27 @@ func (h *ProjectHandler) GetGeneratedDocs(c *gin.Context) {
 	docs, err := h.projectService.GetGeneratedDocs(userUUID, projectID)
 	if err != nil {
 		h.writeProjectError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, docs)
+}
+
+func (h *ProjectHandler) GenerateDocs(c *gin.Context) {
+	userUUID, projectID, ok := h.parseIDs(c)
+	if !ok {
+		return
+	}
+
+	var req models.GenerateDocsRequest
+	_ = c.ShouldBindJSON(&req)
+
+	docs, err := h.projectService.GenerateDocs(userUUID, projectID, req.Force)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if strings.Contains(err.Error(), "api key") {
+			status = http.StatusBadRequest
+		}
+		c.JSON(status, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, docs)

@@ -1,19 +1,30 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { AppShell } from "@/components/app-shell"
 import { api } from "@/lib/api"
+import { useAuth } from "@/lib/auth"
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
 
 export default function NewProjectPage() {
   const router = useRouter()
+  const { user } = useAuth()
   const [name, setName] = useState("")
   const [repoUrl, setRepoUrl] = useState("")
   const [analyzeNow, setAnalyzeNow] = useState(true)
+  const [hasKey, setHasKey] = useState<boolean | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    api
+      .getSettings()
+      .then((s) => setHasKey(s.has_api_key))
+      .catch(() => setHasKey(user?.has_api_key ?? false))
+  }, [user?.has_api_key])
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -34,11 +45,21 @@ export default function NewProjectPage() {
 
   return (
     <AppShell title="New project">
+      {hasKey === false && (
+        <div className="mx-auto w-full max-w-xl rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm">
+          Add your OpenAI or Gemini API key in{" "}
+          <Link href="/settings" className="font-medium underline">
+            Settings
+          </Link>{" "}
+          before starting AI analysis.
+        </div>
+      )}
+
       <form onSubmit={onSubmit} className="mx-auto w-full max-w-xl space-y-5 rounded-xl border bg-card p-6">
         <div>
           <h2 className="text-lg font-semibold">Analyze a GitHub repository</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Provide a public repo URL. Analysis runs in the background via the AI worker.
+            AI will clone the repo, extract structure, then generate an overview and architecture diagram with your API key.
           </p>
         </div>
 
@@ -74,10 +95,19 @@ export default function NewProjectPage() {
             checked={analyzeNow}
             onChange={(e) => setAnalyzeNow(e.target.checked)}
           />
-          Start analysis immediately
+          Start AI analysis immediately
         </label>
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && (
+          <p className="text-sm text-destructive">
+            {error}{" "}
+            {error.toLowerCase().includes("api key") && (
+              <Link href="/settings" className="underline">
+                Open Settings
+              </Link>
+            )}
+          </p>
+        )}
 
         <Button type="submit" disabled={submitting} className="w-full">
           {submitting ? "Creating…" : "Create project"}

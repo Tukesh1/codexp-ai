@@ -96,26 +96,51 @@ func (s *AuthService) DevLogin(email, name string) (*models.DevLoginResponse, er
 		return nil, err
 	}
 
+	// Reload for HasAPIKey / AIModel fields
+	user, err = s.GetUser(user.ID)
+	if err != nil {
+		return nil, err
+	}
+
 	token, err := s.GenerateToken(user.ID.String(), user.ClerkID)
 	if err != nil {
 		return nil, err
 	}
 
-	_ = name // reserved for future profile fields
+	_ = name
 	return &models.DevLoginResponse{Token: token, User: *user}, nil
 }
 
 func (s *AuthService) GetUser(userID uuid.UUID) (*models.User, error) {
 	user := &models.User{}
+	var openaiKey, geminiKey sql.NullString
+	var aiModel, provider sql.NullString
 	err := s.db.QueryRow(`
-		SELECT id, clerk_id, email, plan, created_at, updated_at
+		SELECT id, clerk_id, email, plan,
+			COALESCE(ai_provider, 'openai'),
+			COALESCE(ai_model, 'gpt-4o-mini'),
+			openai_api_key, gemini_api_key,
+			created_at, updated_at
 		FROM users WHERE id = $1
-	`, userID).Scan(&user.ID, &user.ClerkID, &user.Email, &user.Plan, &user.CreatedAt, &user.UpdatedAt)
+	`, userID).Scan(
+		&user.ID, &user.ClerkID, &user.Email, &user.Plan,
+		&provider, &aiModel, &openaiKey, &geminiKey,
+		&user.CreatedAt, &user.UpdatedAt,
+	)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("user not found")
 		}
 		return nil, err
+	}
+	user.AIProvider = provider.String
+	user.AIModel = aiModel.String
+	hasOpenAI := openaiKey.Valid && strings.TrimSpace(openaiKey.String) != ""
+	hasGemini := geminiKey.Valid && strings.TrimSpace(geminiKey.String) != ""
+	if user.AIProvider == "gemini" {
+		user.HasAPIKey = hasGemini
+	} else {
+		user.HasAPIKey = hasOpenAI
 	}
 	return user, nil
 }

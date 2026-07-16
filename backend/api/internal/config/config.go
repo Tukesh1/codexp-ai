@@ -21,6 +21,7 @@ type Config struct {
 	StripeSecretKey     string
 	StripeWebhookSecret string
 	SentryDSN           string
+	AIServiceURL        string
 }
 
 func Load() *Config {
@@ -41,6 +42,7 @@ func Load() *Config {
 		StripeSecretKey:     getEnv("STRIPE_SECRET_KEY", ""),
 		StripeWebhookSecret: getEnv("STRIPE_WEBHOOK_SECRET", ""),
 		SentryDSN:           getEnv("SENTRY_DSN", ""),
+		AIServiceURL:        getEnv("AI_SERVICE_URL", "http://localhost:8000"),
 	}
 }
 

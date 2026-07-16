@@ -25,6 +25,7 @@ export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [hasKey, setHasKey] = useState(true)
 
   useEffect(() => {
     api
@@ -32,6 +33,7 @@ export default function DashboardPage() {
       .then((res) => setProjects(res.projects || []))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
+    api.getSettings().then((s) => setHasKey(s.has_api_key)).catch(() => undefined)
   }, [])
 
   const completed = projects.filter((p) => p.status === "completed").length
@@ -39,6 +41,16 @@ export default function DashboardPage() {
 
   return (
     <AppShell title="Dashboard">
+      {!hasKey && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm">
+          Configure your OpenAI or Gemini API key in{" "}
+          <Link href="/settings" className="font-medium underline">
+            Settings
+          </Link>{" "}
+          to enable AI analysis, diagrams, docs, and Q&A.
+        </div>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard label="Projects" value={projects.length} />
         <StatCard label="Analyzed" value={completed} />

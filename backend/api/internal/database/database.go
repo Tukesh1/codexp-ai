@@ -63,6 +63,11 @@ func runMigrations(db *sql.DB) error {
 			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		);
 		`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS openai_api_key TEXT;`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS gemini_api_key TEXT;`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_provider VARCHAR(50) DEFAULT 'openai';`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_model VARCHAR(100) DEFAULT 'gpt-4o-mini';`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS settings JSONB DEFAULT '{}';`,
 		`
 		CREATE TABLE IF NOT EXISTS projects (
 			id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

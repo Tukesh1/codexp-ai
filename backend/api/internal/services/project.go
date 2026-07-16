@@ -13,14 +13,18 @@ import (
 )
 
 type ProjectService struct {
-	db    *sql.DB
-	redis *redis.Client
+	db         *sql.DB
+	redis      *redis.Client
+	aiClient   *AIClient
+	settings   *SettingsService
 }
 
-func NewProjectService(db *sql.DB, redis *redis.Client) *ProjectService {
+func NewProjectService(db *sql.DB, redis *redis.Client, aiClient *AIClient, settings *SettingsService) *ProjectService {
 	return &ProjectService{
-		db:    db,
-		redis: redis,
+		db:       db,
+		redis:    redis,
+		aiClient: aiClient,
+		settings: settings,
 	}
 }
 
@@ -194,33 +198,47 @@ func (s *ProjectService) GetProjectSummary(userID, projectID uuid.UUID) (*models
 		}
 	}
 
-	var resultsJSON []byte
-	var createdAt time.Time
-	err = s.db.QueryRow(`
+	// Prefer AI-generated overview
+	var overviewJSON []byte
+	var overviewAt time.Time
+	if err := s.db.QueryRow(`
 		SELECT results, created_at FROM analyses
-		WHERE project_id = $1 AND type = 'summary'
+		WHERE project_id = $1 AND type = 'overview'
 		ORDER BY created_at DESC LIMIT 1
-	`, projectID).Scan(&resultsJSON, &createdAt)
-	if err == nil {
-		summary.LastAnalysisAt = &createdAt
+	`, projectID).Scan(&overviewJSON, &overviewAt); err == nil {
+		summary.LastAnalysisAt = &overviewAt
 		var parsed map[string]interface{}
-		if json.Unmarshal(resultsJSON, &parsed) == nil {
-			if text, ok := parsed["message"].(string); ok {
-				summary.Summary = &text
-			} else {
-				msg := fmt.Sprintf(
-					"Analyzed %d files with %d functions and %d classes",
-					summary.FileCount, summary.FunctionCount, summary.ClassCount,
-				)
-				summary.Summary = &msg
+		if json.Unmarshal(overviewJSON, &parsed) == nil {
+			if content, ok := parsed["content"].(string); ok && content != "" {
+				summary.Overview = &content
+				summary.Summary = &content
 			}
 		}
-	} else if summary.FileCount > 0 {
-		msg := fmt.Sprintf(
-			"Analyzed %d files with %d functions and %d classes",
-			summary.FileCount, summary.FunctionCount, summary.ClassCount,
-		)
-		summary.Summary = &msg
+	}
+
+	if summary.Overview == nil {
+		var resultsJSON []byte
+		var createdAt time.Time
+		err = s.db.QueryRow(`
+			SELECT results, created_at FROM analyses
+			WHERE project_id = $1 AND type = 'summary'
+			ORDER BY created_at DESC LIMIT 1
+		`, projectID).Scan(&resultsJSON, &createdAt)
+		if err == nil {
+			summary.LastAnalysisAt = &createdAt
+			var parsed map[string]interface{}
+			if json.Unmarshal(resultsJSON, &parsed) == nil {
+				if text, ok := parsed["message"].(string); ok {
+					summary.Summary = &text
+				}
+			}
+		} else if summary.FileCount > 0 {
+			msg := fmt.Sprintf(
+				"Analyzed %d files with %d functions and %d classes",
+				summary.FileCount, summary.FunctionCount, summary.ClassCount,
+			)
+			summary.Summary = &msg
+		}
 	}
 
 	return summary, nil
@@ -306,40 +324,41 @@ func (s *ProjectService) AskQuestion(userID, projectID uuid.UUID, question strin
 	if _, err := s.GetProject(userID, projectID); err != nil {
 		return nil, err
 	}
-
-	// Keyword RAG fallback using DB search (AI service semantic search used when available)
-	results, err := s.SearchCode(userID, projectID, question)
-	if err != nil {
-		return nil, err
+	if !s.settings.HasAPIKey(userID) {
+		return nil, fmt.Errorf("api key not configured — add OpenAI or Gemini key in Settings")
 	}
 
-	var b strings.Builder
-	b.WriteString("Based on the analyzed codebase:\n\n")
-	if len(results) == 0 {
-		b.WriteString("I couldn't find specific matching code for that question. Try analyzing the repo first, or ask about a function/class name.")
-	} else {
-		b.WriteString(fmt.Sprintf("I found %d related symbols:\n", len(results)))
-		for i, r := range results {
-			if i >= 8 {
-				break
+	var answer string
+	var sources []map[string]interface{}
+	var aiErr error
+
+	if s.aiClient == nil {
+		return nil, fmt.Errorf("AI service not configured — start the AI service on :8000 (./run-ai.sh)")
+	}
+
+	out, aiErr := s.aiClient.Ask(projectID.String(), question)
+	if aiErr != nil {
+		return nil, fmt.Errorf("%w — ensure ./run-ai.sh is running", aiErr)
+	}
+	if a, ok := out["answer"].(string); ok {
+		answer = a
+	}
+	if src, ok := out["sources"].([]interface{}); ok {
+		for _, item := range src {
+			if m, ok := item.(map[string]interface{}); ok {
+				sources = append(sources, m)
 			}
-			b.WriteString(fmt.Sprintf("- %s `%s` in %s", r["entity_type"], r["name"], r["path"]))
-			if summary, ok := r["summary"].(string); ok && summary != "" {
-				b.WriteString(fmt.Sprintf(" — %s", summary))
-			}
-			b.WriteString("\n")
 		}
-		b.WriteString("\nThese are the most relevant matches for your question about: ")
-		b.WriteString(question)
 	}
-
-	answer := b.String()
+	if strings.TrimSpace(answer) == "" {
+		return nil, fmt.Errorf("AI returned an empty answer — try re-analyzing the project")
+	}
 
 	_, _ = s.db.Exec(`
 		INSERT INTO chat_messages (project_id, user_id, role, content, metadata)
 		VALUES ($1, $2, 'user', $3, '{}')
 	`, projectID, userID, question)
-	meta, _ := json.Marshal(map[string]interface{}{"sources": results})
+	meta, _ := json.Marshal(map[string]interface{}{"sources": sources})
 	_, _ = s.db.Exec(`
 		INSERT INTO chat_messages (project_id, user_id, role, content, metadata)
 		VALUES ($1, $2, 'assistant', $3, $4)
@@ -347,7 +366,7 @@ func (s *ProjectService) AskQuestion(userID, projectID uuid.UUID, question strin
 
 	return &models.AskQuestionResponse{
 		Answer:   answer,
-		Sources:  results,
+		Sources:  sources,
 		Question: question,
 	}, nil
 }
@@ -357,6 +376,27 @@ func (s *ProjectService) GetDependencyDiagram(userID, projectID uuid.UUID) (map[
 		return nil, err
 	}
 
+	// Prefer AI-generated mermaid diagram
+	var resultsJSON []byte
+	err := s.db.QueryRow(`
+		SELECT results FROM analyses
+		WHERE project_id = $1 AND type = 'diagram'
+		ORDER BY created_at DESC LIMIT 1
+	`, projectID).Scan(&resultsJSON)
+	if err == nil {
+		var parsed map[string]interface{}
+		if json.Unmarshal(resultsJSON, &parsed) == nil {
+			if content, ok := parsed["content"].(string); ok && content != "" {
+				return map[string]interface{}{
+					"format":  "mermaid",
+					"content": content,
+					"source":  "ai",
+				}, nil
+			}
+		}
+	}
+
+	// Fallback structural graph
 	rows, err := s.db.Query(`
 		SELECT fl.path, f.name, 'function' as kind
 		FROM functions f
@@ -396,64 +436,54 @@ func (s *ProjectService) GetDependencyDiagram(userID, projectID uuid.UUID) (map[
 		"format": "graph",
 		"nodes":  nodes,
 		"edges":  edges,
+		"source": "structural",
 	}, nil
 }
 
 func (s *ProjectService) GetGeneratedDocs(userID, projectID uuid.UUID) (map[string]interface{}, error) {
-	summary, err := s.GetProjectSummary(userID, projectID)
-	if err != nil {
+	if _, err := s.GetProject(userID, projectID); err != nil {
 		return nil, err
 	}
 
-	var md strings.Builder
-	md.WriteString("# Project Documentation\n\n")
-	md.WriteString(fmt.Sprintf("**Status:** %s\n\n", summary.Status))
-	md.WriteString("## Overview\n\n")
-	if summary.Summary != nil {
-		md.WriteString(*summary.Summary)
-		md.WriteString("\n\n")
-	}
-	md.WriteString("## Statistics\n\n")
-	md.WriteString(fmt.Sprintf("- Files: %d\n", summary.FileCount))
-	md.WriteString(fmt.Sprintf("- Functions: %d\n", summary.FunctionCount))
-	md.WriteString(fmt.Sprintf("- Classes: %d\n", summary.ClassCount))
-	md.WriteString("\n## Languages\n\n")
-	for lang, count := range summary.Languages {
-		md.WriteString(fmt.Sprintf("- %s: %d files\n", lang, count))
-	}
-
-	rows, err := s.db.Query(`
-		SELECT name, entity_type, path FROM (
-			SELECT f.name, 'function' as entity_type, fl.path
-			FROM functions f
-			JOIN files fl ON fl.id = f.file_id
-			WHERE fl.project_id = $1
-			UNION ALL
-			SELECT c.name, 'class' as entity_type, fl.path
-			FROM classes c
-			JOIN files fl ON fl.id = c.file_id
-			WHERE fl.project_id = $1
-		) symbols
-		ORDER BY name
-		LIMIT 40
-	`, projectID)
+	var resultsJSON []byte
+	err := s.db.QueryRow(`
+		SELECT results FROM analyses
+		WHERE project_id = $1 AND type = 'docs'
+		ORDER BY created_at DESC LIMIT 1
+	`, projectID).Scan(&resultsJSON)
 	if err == nil {
-		defer rows.Close()
-		md.WriteString("\n## Symbols\n\n")
-		for rows.Next() {
-			var name, entityType, path string
-			if err := rows.Scan(&name, &entityType, &path); err != nil {
-				continue
+		var parsed map[string]interface{}
+		if json.Unmarshal(resultsJSON, &parsed) == nil {
+			if content, ok := parsed["content"].(string); ok {
+				return map[string]interface{}{
+					"format":  "markdown",
+					"content": content,
+					"source":  "ai",
+					"status":  "ready",
+				}, nil
 			}
-			md.WriteString(fmt.Sprintf("### `%s` (%s)\n\nPath: `%s`\n\n", name, entityType, path))
 		}
 	}
 
 	return map[string]interface{}{
 		"format":  "markdown",
-		"content": md.String(),
-		"summary": summary,
+		"content": "",
+		"status":  "missing",
+		"message": "Documentation not generated yet. Click Generate Docs.",
 	}, nil
+}
+
+func (s *ProjectService) GenerateDocs(userID, projectID uuid.UUID, force bool) (map[string]interface{}, error) {
+	if _, err := s.GetProject(userID, projectID); err != nil {
+		return nil, err
+	}
+	if !s.settings.HasAPIKey(userID) {
+		return nil, fmt.Errorf("api key not configured — add OpenAI or Gemini key in Settings")
+	}
+	if s.aiClient == nil {
+		return nil, fmt.Errorf("AI service not configured")
+	}
+	return s.aiClient.GenerateDocs(projectID.String(), force)
 }
 
 func nullString(ns sql.NullString) interface{} {

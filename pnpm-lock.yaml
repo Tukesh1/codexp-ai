@@ -224,6 +224,9 @@ importers:
       next-themes:
         specifier: ^0.4.4
         version: 0.4.6(react-dom@19.0.0)(react@19.0.0)
+      prism-react-renderer:
+        specifier: ^2.4.1
+        version: 2.4.1(react@19.0.0)
       react:
         specifier: ^19.0.0
         version: 19.0.0
@@ -4462,6 +4465,10 @@ packages:
     resolution: {integrity: sha512-6oYBAi5ikg4Pl+kGsoYtawUMBT2zZMCvPNF7pVLnHZfd1zf38DRiWn/gT01RYCdUqkv7Fhr+C9ot4/tb+2sVvA==}
     dependencies:
       undici-types: 6.21.0
+
+  /@types/prismjs@1.26.6:
+    resolution: {integrity: sha512-vqlvI7qlMvcCBbVe0AKAb4f97//Hy0EBTaiW8AalRnG/xAN5zOiWWyrNqNXeq8+KAuvRewjCVY1+IPxk4RdNYw==}
+    dev: false
 
   /@types/react-dom@19.2.3(@types/react@19.0.14):
     resolution: {integrity: sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ==}
@@ -9657,6 +9664,16 @@ packages:
       '@jest/schemas': 29.6.3
       ansi-styles: 5.2.0
       react-is: 18.3.1
+    dev: false
+
+  /prism-react-renderer@2.4.1(react@19.0.0):
+    resolution: {integrity: sha512-ey8Ls/+Di31eqzUxC46h8MksNuGx/n0AAC8uKpwFau4RPDYLuE3EXTp8N8G2vX2N7UC/+IXeNUnlWBGGcAG+Ig==}
+    peerDependencies:
+      react: '>=16.0.0'
+    dependencies:
+      '@types/prismjs': 1.26.6
+      clsx: 2.1.1
+      react: 19.0.0
     dev: false
 
   /proc-log@4.2.0:

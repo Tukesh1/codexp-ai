@@ -701,17 +701,18 @@ export function ProjectOverview({
       {/* 3 — Activity & people */}
       <section className="space-y-4">
         <SectionLabel step="03" title="Activity & people" desc="Recent commits and who builds this" />
-        <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+        <div className="grid items-stretch gap-4 xl:grid-cols-[1.15fr_0.85fr]">
           <Panel
+            className="h-full min-h-[28rem]"
             title="Contribution pulse"
             subtitle="Recent commit density from GitHub"
             onRefresh={() => void refreshSection("commits")}
             refreshing={loadingSection.commits}
           >
-            <div className="space-y-5">
+            <div className="flex h-full min-h-0 flex-col gap-5">
               <CommitHeatmap commits={heatCommits} />
               {commitActivity.length > 0 && (
-                <div>
+                <div className="shrink-0">
                   <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Commits by day
                   </p>
@@ -719,7 +720,7 @@ export function ProjectOverview({
                 </div>
               )}
               {commits.length > 0 ? (
-                <ul className="max-h-56 space-y-0 overflow-y-auto rounded-xl border">
+                <ul className="min-h-0 flex-1 space-y-0 overflow-y-auto overscroll-contain rounded-xl border">
                   {commits.slice(0, 10).map((c, i) => (
                     <li key={c.sha} className={`flex gap-3 px-3 py-2.5 ${i > 0 ? "border-t" : ""}`}>
                       <div className="mt-1 size-2 shrink-0 rounded-full bg-teal-500" />
@@ -754,116 +755,115 @@ export function ProjectOverview({
             </div>
           </Panel>
 
-          <div className="space-y-4">
-            <Panel
-              title="Contributors"
-              subtitle="GitHub contribution leaders"
-              onRefresh={() => void refreshSection("contributors")}
-              refreshing={loadingSection.contributors}
-            >
-              {loadingSection.contributors && !insights?.contributors?.length && !insights?.contributors_error ? (
-                <EmptyState text="Loading contributors…" />
-              ) : (insights?.contributors || []).length === 0 ? (
-                <GithubError
-                  message={insights?.contributors_error || "Contributor list unavailable."}
-                  onRetry={() => void refreshSection("contributors")}
-                  refreshing={loadingSection.contributors}
-                  tokenConfigured={insights?.github_token_configured}
-                />
-              ) : (
-                <ul className="space-y-2.5">
-                  {(insights?.contributors || []).slice(0, 10).map((c, i) => (
-                    <li key={c.login} className="flex items-center gap-3">
-                      {c.avatar_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={c.avatar_url} alt="" className="size-7 rounded-full" />
-                      ) : (
-                        <div className="flex size-7 items-center justify-center rounded-full bg-muted">
-                          <Users className="size-3.5 text-muted-foreground" />
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <a
-                          href={c.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-sm font-medium hover:underline"
-                        >
-                          {c.login}
-                        </a>
-                        <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
-                          <div
-                            className="h-full rounded-full"
-                            style={{
-                              width: `${(c.contributions / maxContributor) * 100}%`,
-                              background: CHART_PALETTE[i % CHART_PALETTE.length],
-                            }}
-                          />
-                        </div>
+          <Panel
+            className="h-full min-h-[28rem]"
+            title="Contributors"
+            subtitle="GitHub contribution leaders"
+            onRefresh={() => void refreshSection("contributors")}
+            refreshing={loadingSection.contributors}
+          >
+            {loadingSection.contributors && !insights?.contributors?.length && !insights?.contributors_error ? (
+              <EmptyState text="Loading contributors…" />
+            ) : (insights?.contributors || []).length === 0 ? (
+              <GithubError
+                message={insights?.contributors_error || "Contributor list unavailable."}
+                onRetry={() => void refreshSection("contributors")}
+                refreshing={loadingSection.contributors}
+                tokenConfigured={insights?.github_token_configured}
+              />
+            ) : (
+              <ul className="h-full min-h-0 space-y-2.5 overflow-y-auto overscroll-contain">
+                {(insights?.contributors || []).slice(0, 10).map((c, i) => (
+                  <li key={c.login} className="flex items-center gap-3">
+                    {c.avatar_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={c.avatar_url} alt="" className="size-7 rounded-full" />
+                    ) : (
+                      <div className="flex size-7 items-center justify-center rounded-full bg-muted">
+                        <Users className="size-3.5 text-muted-foreground" />
                       </div>
-                      <span className="shrink-0 tabular-nums text-xs text-muted-foreground">
-                        {c.contributions}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Panel>
-
-            <Panel
-              title="Releases"
-              subtitle="Published tags from GitHub"
-              onRefresh={() => void refreshSection("releases")}
-              refreshing={loadingSection.releases}
-            >
-              {(insights?.releases || []).length > 0 ? (
-                <ul className="space-y-2">
-                  {(insights?.releases || []).map((r) => (
-                    <li key={r.tag} className="flex items-start justify-between gap-3 rounded-lg border px-3 py-2">
-                      <div className="min-w-0">
-                        <a href={r.url} target="_blank" rel="noreferrer" className="text-sm font-medium hover:underline">
-                          {r.name || r.tag}
-                        </a>
-                        <p className="text-[11px] text-muted-foreground">
-                          {r.tag}
-                          {r.published_at ? ` · ${new Date(r.published_at).toLocaleDateString()}` : ""}
-                          {r.prerelease ? " · prerelease" : ""}
-                        </p>
-                      </div>
-                      <Box className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
-                    </li>
-                  ))}
-                </ul>
-              ) : insights?.releases_error ? (
-                <GithubError
-                  message={insights.releases_error}
-                  onRetry={() => void refreshSection("releases")}
-                  refreshing={loadingSection.releases}
-                  tokenConfigured={insights.github_token_configured}
-                />
-              ) : (
-                <p className="text-sm text-muted-foreground">No published releases found.</p>
-              )}
-              {(insights?.recent_authors || []).length > 0 && (
-                <div className="mt-4">
-                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    Recent commit authors
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {(insights?.recent_authors || []).slice(0, 8).map((a) => (
-                      <span
-                        key={a.name}
-                        className="rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground"
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <a
+                        href={c.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-sm font-medium hover:underline"
                       >
-                        {a.name} · {a.count}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </Panel>
-          </div>
+                        {c.login}
+                      </a>
+                      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${(c.contributions / maxContributor) * 100}%`,
+                            background: CHART_PALETTE[i % CHART_PALETTE.length],
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <span className="shrink-0 tabular-nums text-xs text-muted-foreground">
+                      {c.contributions}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
         </div>
+
+        <Panel
+          title="Releases"
+          subtitle="Published tags from GitHub"
+          onRefresh={() => void refreshSection("releases")}
+          refreshing={loadingSection.releases}
+        >
+          {(insights?.releases || []).length > 0 ? (
+            <ul className="space-y-2">
+              {(insights?.releases || []).map((r) => (
+                <li key={r.tag} className="flex items-start justify-between gap-3 rounded-lg border px-3 py-2">
+                  <div className="min-w-0">
+                    <a href={r.url} target="_blank" rel="noreferrer" className="text-sm font-medium hover:underline">
+                      {r.name || r.tag}
+                    </a>
+                    <p className="text-[11px] text-muted-foreground">
+                      {r.tag}
+                      {r.published_at ? ` · ${new Date(r.published_at).toLocaleDateString()}` : ""}
+                      {r.prerelease ? " · prerelease" : ""}
+                    </p>
+                  </div>
+                  <Box className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+                </li>
+              ))}
+            </ul>
+          ) : insights?.releases_error ? (
+            <GithubError
+              message={insights.releases_error}
+              onRetry={() => void refreshSection("releases")}
+              refreshing={loadingSection.releases}
+              tokenConfigured={insights.github_token_configured}
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground">No published releases found.</p>
+          )}
+          {(insights?.recent_authors || []).length > 0 && (
+            <div className="mt-4">
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Recent commit authors
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {(insights?.recent_authors || []).slice(0, 8).map((a) => (
+                  <span
+                    key={a.name}
+                    className="rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground"
+                  >
+                    {a.name} · {a.count}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </Panel>
       </section>
       {/* 4 — Tech stack */}
       <section className="space-y-4">
@@ -1101,16 +1101,18 @@ function Panel({
   children,
   onRefresh,
   refreshing,
+  className,
 }: {
   title: string
   subtitle?: string
   children: React.ReactNode
   onRefresh?: () => void
   refreshing?: boolean
+  className?: string
 }) {
   return (
-    <section className="rounded-2xl border bg-card p-5">
-      <header className="mb-4 flex items-start justify-between gap-3">
+    <section className={`flex flex-col rounded-2xl border bg-card p-5 ${className || ""}`}>
+      <header className="mb-4 flex shrink-0 items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="font-medium tracking-tight">{title}</h3>
           {subtitle && <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>}
@@ -1127,7 +1129,7 @@ function Panel({
           </button>
         )}
       </header>
-      {children}
+      <div className="min-h-0 flex-1">{children}</div>
     </section>
   )
 }

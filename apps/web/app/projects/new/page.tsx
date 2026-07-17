@@ -18,6 +18,7 @@ function parseGitHubRepo(input: string): { owner: string; repo: string; url: str
   // owner/repo shorthand
   if (/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(raw)) {
     const [owner, repo] = raw.split("/")
+    if (!owner || !repo) return null
     return {
       owner,
       repo,

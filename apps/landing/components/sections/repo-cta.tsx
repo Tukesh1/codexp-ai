@@ -47,7 +47,7 @@ export function RepoCta({ compact = false }: { compact?: boolean }) {
       }`}
     >
       <label
-        className="block font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-[0.18em] text-[var(--fg-muted)]"
+        className="block font-[family-name:var(--font-mono)] text-xs uppercase tracking-[0.18em] text-[var(--fg-muted)]"
         htmlFor="landing-repo"
       >
         GitHub repository
@@ -60,12 +60,12 @@ export function RepoCta({ compact = false }: { compact?: boolean }) {
           placeholder="owner/repo or github.com/…"
           autoComplete="off"
           spellCheck={false}
-          className="h-11 flex-1 border border-[var(--line)] bg-[var(--bg)] px-3 font-[family-name:var(--font-mono)] text-sm text-[var(--fg)] placeholder:text-[var(--fg-muted)]/50 outline-none transition focus:border-[var(--fg)]"
+          className="h-12 flex-1 border border-[var(--line)] bg-[var(--bg)] px-3 font-[family-name:var(--font-mono)] text-base text-[var(--fg)] placeholder:text-[var(--fg-muted)]/50 outline-none transition focus:border-[var(--fg)]"
         />
         <button
           type="submit"
           disabled={!parsed}
-          className="inline-flex h-11 items-center justify-center gap-2 bg-[var(--fg)] px-5 text-sm font-semibold text-[var(--inverse)] transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-30"
+          className="inline-flex h-12 items-center justify-center gap-2 bg-[var(--fg)] px-5 text-base font-semibold text-[var(--inverse)] transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-30"
         >
           Analyze
           <ArrowRight className="size-4" />
@@ -73,17 +73,17 @@ export function RepoCta({ compact = false }: { compact?: boolean }) {
       </div>
 
       {parsed ? (
-        <p className="mt-2.5 font-[family-name:var(--font-mono)] text-[11px] text-[var(--fg-muted)]">
+        <p className="mt-2.5 font-[family-name:var(--font-mono)] text-sm text-[var(--fg-muted)]">
           <span className="text-[var(--fg)]">{parsed.repo}</span>
           <span className="mx-1.5 opacity-30">·</span>
           {parsed.owner}/{parsed.repo}
         </p>
       ) : repoInput.trim() ? (
-        <p className="mt-2.5 font-[family-name:var(--font-mono)] text-[11px] text-[var(--fg-muted)]">
+        <p className="mt-2.5 font-[family-name:var(--font-mono)] text-sm text-[var(--fg-muted)]">
           Waiting for a valid URL…
         </p>
       ) : (
-        <p className="mt-2.5 font-[family-name:var(--font-mono)] text-[11px] text-[var(--fg-muted)]">
+        <p className="mt-2.5 font-[family-name:var(--font-mono)] text-sm text-[var(--fg-muted)]">
           e.g. pytorch/pytorch
         </p>
       )}

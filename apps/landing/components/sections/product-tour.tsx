@@ -358,10 +358,10 @@ export function ProductTour() {
       <div className="mx-auto max-w-6xl px-4 md:px-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h2 className="font-[family-name:var(--font-display)] text-3xl font-bold tracking-tight text-[var(--fg)] md:text-4xl">
+            <h2 className="font-[family-name:var(--font-display)] text-4xl font-bold tracking-tight text-[var(--fg)] md:text-5xl">
               The product, as it ships
             </h2>
-            <p className="mt-3 max-w-lg text-[var(--fg-muted)]">
+            <p className="mt-3 max-w-lg text-lg text-[var(--fg-muted)]">
               Animated walkthrough of Overview, Activity, Code, and Diagram.
             </p>
           </div>
@@ -381,13 +381,13 @@ export function ProductTour() {
                 key={d.id}
                 type="button"
                 onClick={() => setActive(i)}
-                className={`shrink-0 border px-3 py-2.5 text-left text-sm transition lg:border-0 lg:border-l lg:px-4 ${
+                className={`shrink-0 border px-3 py-3 text-left text-base transition lg:border-0 lg:border-l lg:px-4 ${
                   i === active
                     ? "border-[var(--fg)] bg-[var(--bg-elevated)] text-[var(--fg)] lg:border-l-[var(--fg)]"
                     : "border-[var(--line)] text-[var(--fg-muted)] hover:text-[var(--fg)] lg:border-l-[var(--line)]"
                 }`}
               >
-                <span className="font-[family-name:var(--font-mono)] text-[10px] tracking-wider uppercase opacity-60">
+                <span className="font-[family-name:var(--font-mono)] text-xs tracking-wider uppercase opacity-60">
                   {d.label}
                 </span>
                 <span className="mt-0.5 block font-medium">{d.title}</span>
@@ -398,8 +398,8 @@ export function ProductTour() {
           <div className="overflow-hidden border border-[var(--line)] bg-[var(--bg-elevated)]">
             <div className="flex items-center justify-between gap-4 border-b border-[var(--line)] px-5 py-3">
               <div>
-                <p className="font-medium text-[var(--fg)]">{demo.title}</p>
-                <p className="mt-0.5 text-xs text-[var(--fg-muted)]">{demo.blurb}</p>
+                <p className="text-lg font-medium text-[var(--fg)]">{demo.title}</p>
+                <p className="mt-0.5 text-sm text-[var(--fg-muted)]">{demo.blurb}</p>
               </div>
               <div className="hidden h-px w-24 shrink-0 overflow-hidden bg-[var(--line)] sm:block">
                 <div key={demo.id} className="h-full bg-[var(--fg)] landing-progress" />

@@ -40,22 +40,22 @@ export function Features() {
     <>
       <section id="how" className="border-t border-[var(--line)] py-24 md:py-32">
         <div className="mx-auto max-w-6xl px-4 md:px-6">
-          <h2 className="max-w-lg font-[family-name:var(--font-display)] text-3xl font-bold tracking-tight text-[var(--fg)] md:text-4xl">
+          <h2 className="max-w-xl font-[family-name:var(--font-display)] text-4xl font-bold tracking-tight text-[var(--fg)] md:text-5xl">
             From clone to clarity in three moves
           </h2>
-          <p className="mt-3 max-w-md text-[var(--fg-muted)]">
+          <p className="mt-3 max-w-md text-lg text-[var(--fg-muted)]">
             Built for the messy middle of onboarding a foreign repository.
           </p>
           <ol className="mt-16 grid gap-12 md:grid-cols-3 md:gap-10">
             {steps.map((step) => (
               <li key={step.n}>
-                <span className="font-[family-name:var(--font-mono)] text-xs tracking-[0.2em] text-[var(--fg-muted)]">
+                <span className="font-[family-name:var(--font-mono)] text-sm tracking-[0.2em] text-[var(--fg-muted)]">
                   {step.n}
                 </span>
-                <h3 className="mt-3 text-xl font-semibold tracking-tight text-[var(--fg)]">
+                <h3 className="mt-3 text-2xl font-semibold tracking-tight text-[var(--fg)]">
                   {step.title}
                 </h3>
-                <p className="mt-2 text-sm leading-relaxed text-[var(--fg-muted)]">{step.body}</p>
+                <p className="mt-2 text-base leading-relaxed text-[var(--fg-muted)]">{step.body}</p>
               </li>
             ))}
           </ol>
@@ -66,18 +66,18 @@ export function Features() {
         <div className="mx-auto max-w-6xl px-4 md:px-6">
           <div className="grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:gap-20">
             <div>
-              <h2 className="font-[family-name:var(--font-display)] text-3xl font-bold tracking-tight text-[var(--fg)] md:text-4xl">
+              <h2 className="font-[family-name:var(--font-display)] text-4xl font-bold tracking-tight text-[var(--fg)] md:text-5xl">
                 What you actually get
               </h2>
-              <p className="mt-3 text-[var(--fg-muted)]">
+              <p className="mt-3 text-lg text-[var(--fg-muted)]">
                 No placeholder dashboards — these ship in the product today.
               </p>
             </div>
             <ul className="divide-y divide-[var(--line)] border-y border-[var(--line)]">
               {capabilities.map((item) => (
-                <li key={item.title} className="grid gap-2 py-7 sm:grid-cols-[11rem_1fr] sm:gap-10">
-                  <h3 className="text-sm font-semibold text-[var(--fg)]">{item.title}</h3>
-                  <p className="text-sm leading-relaxed text-[var(--fg-muted)]">{item.body}</p>
+                <li key={item.title} className="grid gap-2 py-7 sm:grid-cols-[12rem_1fr] sm:gap-10">
+                  <h3 className="text-base font-semibold text-[var(--fg)]">{item.title}</h3>
+                  <p className="text-base leading-relaxed text-[var(--fg-muted)]">{item.body}</p>
                 </li>
               ))}
             </ul>

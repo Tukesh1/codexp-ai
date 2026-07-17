@@ -17,7 +17,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--line)] bg-[var(--bg)]/90 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5 md:px-6">
-        <Link href="/" className="font-[family-name:var(--font-display)] text-lg font-bold tracking-tight text-[var(--fg)]">
+        <Link href="/" className="font-[family-name:var(--font-display)] text-xl font-bold tracking-tight text-[var(--fg)]">
           Codexp
         </Link>
 
@@ -26,7 +26,7 @@ export function Header() {
             <Link
               key={item.href}
               href={item.href}
-              className="text-sm text-[var(--fg-muted)] transition hover:text-[var(--fg)]"
+              className="text-base text-[var(--fg-muted)] transition hover:text-[var(--fg)]"
             >
               {item.label}
             </Link>
@@ -36,13 +36,13 @@ export function Header() {
         <div className="hidden items-center gap-5 md:flex">
           <Link
             href={GITHUB_URL}
-            className="text-sm text-[var(--fg-muted)] transition hover:text-[var(--fg)]"
+            className="text-base text-[var(--fg-muted)] transition hover:text-[var(--fg)]"
           >
             GitHub
           </Link>
           <Link
             href={`${APP_URL}/login`}
-            className="bg-[var(--fg)] px-4 py-2 text-sm font-medium text-[var(--inverse)] transition hover:opacity-85"
+            className="bg-[var(--fg)] px-4 py-2.5 text-base font-medium text-[var(--inverse)] transition hover:opacity-85"
           >
             Open app
           </Link>

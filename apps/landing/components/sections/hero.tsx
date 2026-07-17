@@ -85,13 +85,13 @@ export function Hero() {
 
       <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-4 py-16 md:px-6 lg:grid-cols-2 lg:gap-14 lg:py-20">
         <div className="relative z-10 max-w-xl">
-          <p className="landing-rise font-[family-name:var(--font-display)] text-6xl font-extrabold tracking-[-0.04em] text-[var(--fg)] sm:text-7xl md:text-8xl">
+          <p className="landing-rise font-[family-name:var(--font-display)] text-7xl font-extrabold tracking-[-0.04em] text-[var(--fg)] sm:text-8xl md:text-9xl">
             Codexp
           </p>
-          <h1 className="landing-rise landing-rise-delay-1 mt-7 max-w-md text-xl font-medium leading-snug tracking-tight text-[var(--fg)] md:text-2xl">
+          <h1 className="landing-rise landing-rise-delay-1 mt-7 max-w-lg text-2xl font-medium leading-snug tracking-tight text-[var(--fg)] md:text-3xl">
             Understand any GitHub repo — overview, diagrams, Ask on what you highlight.
           </h1>
-          <p className="landing-rise landing-rise-delay-2 mt-4 max-w-sm text-[15px] leading-relaxed text-[var(--fg-muted)]">
+          <p className="landing-rise landing-rise-delay-2 mt-4 max-w-md text-lg leading-relaxed text-[var(--fg-muted)]">
             Bring your own key. Index once. Explore with lenses, graphs, and notes.
           </p>
 
@@ -99,7 +99,7 @@ export function Hero() {
             <RepoCta />
           </div>
 
-          <div className="landing-rise landing-rise-delay-3 mt-5 flex flex-wrap gap-6 font-[family-name:var(--font-mono)] text-xs tracking-wide text-[var(--fg-muted)]">
+          <div className="landing-rise landing-rise-delay-3 mt-5 flex flex-wrap gap-6 font-[family-name:var(--font-mono)] text-sm tracking-wide text-[var(--fg-muted)]">
             <Link href={`${APP_URL}/login`} className="transition hover:text-[var(--fg)]">
               Sign in
             </Link>
@@ -120,7 +120,7 @@ export function Hero() {
               </span>
             </div>
 
-            <div className="border-b border-[var(--line)] p-4 font-[family-name:var(--font-mono)] text-[12px] leading-[1.7] sm:p-5 sm:text-[13px]">
+            <div className="border-b border-[var(--line)] p-4 font-[family-name:var(--font-mono)] text-[13px] leading-[1.7] sm:p-5 sm:text-[15px]">
               <div className="flex gap-4">
                 <div className="select-none text-right text-[var(--fg-muted)]/40">
                   {[318, 319, 320, 321, 322, 323, 324].map((n) => (
@@ -173,7 +173,7 @@ export function Hero() {
                   ))}
                 </div>
               </div>
-              <p className="mt-3 min-h-[4.5rem] text-sm leading-relaxed text-[var(--fg)]">
+              <p className="mt-3 min-h-[5rem] text-base leading-relaxed text-[var(--fg)]">
                 {typed}
                 <span className="landing-cursor text-[var(--fg)]">{"▌"}</span>
               </p>

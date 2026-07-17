@@ -1,5 +1,9 @@
 /* Landing — black & white (scoped so we don't clash with UI kit tokens) */
 
+html {
+  font-size: 18px; /* bump rem scale for the whole landing app */
+}
+
 .landing-root {
   --bg: #050505;
   --bg-elevated: #0e0e0e;
@@ -12,6 +16,8 @@
   color: var(--fg);
   background: var(--bg);
   min-height: 100svh;
+  font-size: 1.05rem;
+  line-height: 1.6;
 }
 
 .landing-grain {

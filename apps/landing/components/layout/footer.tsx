@@ -6,14 +6,14 @@ export function Footer() {
     <footer className="border-t border-[var(--line)]">
       <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 py-14 md:flex-row md:items-end md:justify-between md:px-6">
         <div>
-          <p className="font-[family-name:var(--font-display)] text-xl font-bold tracking-tight text-[var(--fg)]">
+          <p className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-tight text-[var(--fg)]">
             Codexp
           </p>
-          <p className="mt-2 max-w-sm text-sm text-[var(--fg-muted)]">
+          <p className="mt-2 max-w-sm text-base text-[var(--fg-muted)]">
             Codebase understanding for developers who inherit repos they didn’t write.
           </p>
         </div>
-        <nav className="flex flex-wrap gap-x-7 gap-y-2 text-sm text-[var(--fg-muted)]">
+        <nav className="flex flex-wrap gap-x-7 gap-y-2 text-base text-[var(--fg-muted)]">
           <Link href="#tour" className="hover:text-[var(--fg)]">
             Product
           </Link>

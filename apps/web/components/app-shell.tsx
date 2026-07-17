@@ -48,7 +48,7 @@ export function AppShell({
           <Separator orientation="vertical" className="mr-2 h-4" />
           <h1 className="text-sm font-medium">{title || "CodeExp AI"}</h1>
         </header>
-        <div className="flex flex-1 flex-col gap-6 p-6">{children}</div>
+        <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-auto p-6">{children}</div>
       </SidebarInset>
       <GlobalAskPanel />
     </SidebarProvider>

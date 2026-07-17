@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"strings"
 
 	"github.com/Tukesh1/codexp-ai/backend/api/internal/config"
 	"github.com/Tukesh1/codexp-ai/backend/api/internal/database"
@@ -13,6 +14,39 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
+
+func corsOriginsAllowed() []string {
+	origins := []string{
+		"http://localhost:3000",
+		"http://localhost:3001",
+		"http://localhost:3002",
+	}
+	if extra := os.Getenv("CORS_ORIGINS"); extra != "" {
+		for _, o := range strings.Split(extra, ",") {
+			o = strings.TrimSpace(o)
+			if o != "" {
+				origins = append(origins, o)
+			}
+		}
+	}
+	return origins
+}
+
+func originAllowed(origin string) bool {
+	if origin == "" {
+		return false
+	}
+	for _, o := range corsOriginsAllowed() {
+		if o == origin {
+			return true
+		}
+	}
+	// Preview + production Vercel apps
+	if strings.HasPrefix(origin, "https://") && strings.HasSuffix(origin, ".vercel.app") {
+		return true
+	}
+	return false
+}
 
 func main() {
 	// Load environment variables
@@ -56,16 +90,13 @@ func main() {
 
 	router := gin.Default()
 
-	// CORS configuration
-	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowOrigins = []string{
-		"http://localhost:3000",
-		"http://localhost:3001",
-		"http://localhost:3002",
-		"https://*.vercel.app",
+	// CORS — use AllowOriginFunc so Vercel wildcards / CORS_ORIGINS work
+	corsConfig := cors.Config{
+		AllowOriginFunc:  originAllowed,
+		AllowCredentials: true,
+		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "Authorization"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 	}
-	corsConfig.AllowCredentials = true
-	corsConfig.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization"}
 	router.Use(cors.New(corsConfig))
 
 	// Health check
@@ -74,11 +105,10 @@ func main() {
 	// Root — avoid bare "404 page not found" in the browser
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{
-			"name":    "CodeExp AI API",
-			"status":  "ok",
-			"health":  "/health",
-			"docs":    "Use /api/v1/* with a Bearer token",
-			"web_app": "http://localhost:3000",
+			"name":   "CodeExp AI API",
+			"status": "ok",
+			"health": "/health",
+			"docs":   "Use /api/v1/* with a Bearer token",
 		})
 	})
 

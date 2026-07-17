@@ -33,12 +33,13 @@ COPY --from=builder /app/main .
 RUN adduser -D -s /bin/sh appuser
 USER appuser
 
-# Expose port
+# Expose port (Railway overrides with $PORT)
+ENV PORT=8080
 EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:${PORT:-8080}/health || exit 1
 
 # Run the binary
 CMD ["./main"]

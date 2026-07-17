@@ -4,7 +4,7 @@ import ReactMarkdown from "react-markdown"
 
 export function MarkdownBody({
   content,
-  className = "",
+  className = "max-h-[360px]",
 }: {
   content: string
   className?: string
@@ -14,7 +14,7 @@ export function MarkdownBody({
 
   return (
     <div
-      className={`markdown-body max-h-[360px] overflow-y-auto text-sm leading-relaxed text-muted-foreground ${className}`}
+      className={`markdown-body overflow-y-auto overscroll-contain text-sm leading-relaxed text-muted-foreground ${className}`}
     >
       <ReactMarkdown
         components={{

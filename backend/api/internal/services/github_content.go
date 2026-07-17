@@ -403,26 +403,24 @@ func (s *ProjectService) fetchGitHubReadme(repoURL, token string) (map[string]in
 		if err == nil {
 			text := string(decoded)
 			lines := strings.Split(text, "\n")
-			kept := make([]string, 0, 24)
+			kept := make([]string, 0, 60)
 			for _, line := range lines {
 				trimmed := strings.TrimSpace(line)
-				if trimmed == "" {
-					if len(kept) > 0 {
-						kept = append(kept, "")
-					}
+				// Skip raw HTML blocks / images; keep markdown structure for the UI.
+				if strings.HasPrefix(trimmed, "<") && strings.HasSuffix(trimmed, ">") {
 					continue
 				}
-				if strings.HasPrefix(trimmed, "![") || strings.HasPrefix(trimmed, "<") {
+				if strings.HasPrefix(trimmed, "![") {
 					continue
 				}
 				kept = append(kept, line)
-				if len(kept) >= 18 {
+				if len(kept) >= 48 {
 					break
 				}
 			}
 			excerpt = strings.TrimSpace(strings.Join(kept, "\n"))
-			if len(excerpt) > 1600 {
-				excerpt = excerpt[:1600] + "…"
+			if len(excerpt) > 4500 {
+				excerpt = excerpt[:4500] + "\n\n…"
 			}
 		}
 	}

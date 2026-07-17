@@ -322,12 +322,17 @@ func (s *ProjectService) SearchCode(userID, projectID uuid.UUID, query string) (
 	return results, nil
 }
 
-func (s *ProjectService) AskQuestion(userID, projectID uuid.UUID, question string) (*models.AskQuestionResponse, error) {
+func (s *ProjectService) AskQuestion(userID, projectID uuid.UUID, req *models.AskQuestionRequest) (*models.AskQuestionResponse, error) {
 	if _, err := s.GetProject(userID, projectID); err != nil {
 		return nil, err
 	}
 	if !s.settings.HasAPIKey(userID) {
 		return nil, fmt.Errorf("api key not configured — add OpenAI or Gemini key in Settings")
+	}
+
+	question := strings.TrimSpace(req.Question)
+	if question == "" {
+		return nil, fmt.Errorf("question is required")
 	}
 
 	var answer string
@@ -338,7 +343,7 @@ func (s *ProjectService) AskQuestion(userID, projectID uuid.UUID, question strin
 		return nil, fmt.Errorf("AI service not configured — start the AI service on :8000 (./run-ai.sh)")
 	}
 
-	out, aiErr := s.aiClient.Ask(projectID.String(), question)
+	out, aiErr := s.aiClient.AskWithOptions(projectID.String(), question, req.Context, req.Files, strings.TrimSpace(req.Lens))
 	if aiErr != nil {
 		return nil, fmt.Errorf("%w — ensure ./run-ai.sh is running", aiErr)
 	}
@@ -356,10 +361,49 @@ func (s *ProjectService) AskQuestion(userID, projectID uuid.UUID, question strin
 		return nil, fmt.Errorf("AI returned an empty answer — try re-analyzing the project")
 	}
 
+	userMeta := map[string]interface{}{}
+	displayQuestion := question
+	if lens := strings.TrimSpace(req.Lens); lens != "" {
+		userMeta["lens"] = lens
+		displayQuestion = fmt.Sprintf("[%s] %s", lens, question)
+	}
+	if len(req.Files) > 0 {
+		paths := make([]string, 0, len(req.Files))
+		for _, f := range req.Files {
+			if f.Path != "" {
+				paths = append(paths, f.Path)
+			}
+		}
+		userMeta["files"] = paths
+		if len(paths) > 0 {
+			displayQuestion = fmt.Sprintf("%s\n\n[files: %s]", displayQuestion, strings.Join(paths, ", "))
+		}
+	}
+	if req.Context != nil && strings.TrimSpace(req.Context.Code) != "" {
+		userMeta["selection"] = map[string]interface{}{
+			"path":       req.Context.Path,
+			"start_line": req.Context.StartLine,
+			"end_line":   req.Context.EndLine,
+			"language":   req.Context.Language,
+		}
+		if req.Context.Path != "" {
+			loc := req.Context.Path
+			if req.Context.StartLine > 0 {
+				if req.Context.EndLine > req.Context.StartLine {
+					loc = fmt.Sprintf("%s:%d-%d", req.Context.Path, req.Context.StartLine, req.Context.EndLine)
+				} else {
+					loc = fmt.Sprintf("%s:%d", req.Context.Path, req.Context.StartLine)
+				}
+			}
+			displayQuestion = fmt.Sprintf("%s\n\n[selection %s]", displayQuestion, loc)
+		}
+	}
+	userMetaJSON, _ := json.Marshal(userMeta)
+
 	_, _ = s.db.Exec(`
 		INSERT INTO chat_messages (project_id, user_id, role, content, metadata)
-		VALUES ($1, $2, 'user', $3, '{}')
-	`, projectID, userID, question)
+		VALUES ($1, $2, 'user', $3, $4)
+	`, projectID, userID, displayQuestion, userMetaJSON)
 	meta, _ := json.Marshal(map[string]interface{}{"sources": sources})
 	_, _ = s.db.Exec(`
 		INSERT INTO chat_messages (project_id, user_id, role, content, metadata)

@@ -82,13 +82,18 @@ class LLMService:
 
     async def generate_diagram(self, project_name: str, context: str) -> str:
         system = (
-            "You are CodeExp AI. Output ONLY a Mermaid diagram (flowchart or graph TD) "
-            "that shows the main modules/components and how they relate. "
-            "No prose before or after — only a mermaid code block."
+            "You are CodeExp AI. Output ONLY a Mermaid flowchart that maps the architecture. "
+            "Rules:\n"
+            "- Start with `flowchart TB` (top to bottom).\n"
+            "- Use 3–6 subgraphs for layers (e.g. Client, API, Services, Data, External).\n"
+            "- Keep node labels short (2–4 words). Prefer module/package names over file paths.\n"
+            "- Show the main dependency edges between layers and key components.\n"
+            "- Max ~18 nodes. No style/classDef lines. No prose outside the mermaid block.\n"
+            "- Use subgraph id[\"Label\"] syntax for multi-word subgraph titles."
         )
         user = (
-            f"Project: {project_name}\n\nStructure:\n{context}\n\n"
-            "Return a mermaid diagram of the architecture."
+            f"Project: {project_name}\n\nStructure signals:\n{context}\n\n"
+            "Return a clean Mermaid architecture flowchart."
         )
         text = await self._chat(system, user, temperature=0.2)
         return extract_mermaid(text)
@@ -105,12 +110,40 @@ class LLMService:
         )
         return await self._chat(system, user)
 
-    async def answer_question(self, question: str, context: str) -> str:
+    async def answer_question(self, question: str, context: str, lens: Optional[str] = None) -> str:
+        lens_key = (lens or "").strip().lower()
+        lens_prompts = {
+            "security": (
+                "Adopt a security engineer lens: call out authz/authn gaps, injection, secrets, "
+                "unsafe deserialization, and trust boundaries. Prioritize actionable risks."
+            ),
+            "reviewer": (
+                "Adopt a senior code-reviewer lens: correctness, edge cases, API contracts, "
+                "naming, and maintainability. Be direct about what to change."
+            ),
+            "beginner": (
+                "Adopt a patient teacher lens for a junior developer: plain language, "
+                "define jargon, walk through control flow step by step."
+            ),
+            "performance": (
+                "Adopt a performance engineer lens: hotspots, complexity, I/O, allocations, "
+                "caching, and concurrency hazards."
+            ),
+            "architect": (
+                "Adopt a software architect lens: module boundaries, coupling, data flow, "
+                "extension points, and how this fits the larger system."
+            ),
+        }
         system = (
-            "You are CodeExp AI answering questions about a codebase. "
-            "Use only the provided code context. If unsure, say what is missing. "
-            "Cite file paths and symbol names when possible."
+            "You are CodeExp AI helping a developer understand a codebase quickly. "
+            "If SELECTED CODE is present, focus on that selection first: what it does, "
+            "how it works, important inputs/outputs, edge cases, and how it fits nearby code. "
+            "If MULTIPLE FILES are present, compare and relate them explicitly. "
+            "Use only the provided context. Cite file paths and symbol names when possible. "
+            "Be clear and concrete — prefer short sections over fluff."
         )
+        if lens_key in lens_prompts:
+            system = system + " " + lens_prompts[lens_key]
         user = f"Question: {question}\n\nRelevant code context:\n{context}"
         return await self._chat(system, user, temperature=0.2)
 

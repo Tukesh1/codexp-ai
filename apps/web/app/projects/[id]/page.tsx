@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
-import { useParams } from "next/navigation"
+import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation"
 import { MessageSquare, RefreshCw } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
 import { CodeViewer } from "@/components/code-viewer"
+import { ExplorePanel } from "@/components/explore-panel"
 import { FileTree } from "@/components/file-tree"
 import { MermaidDiagram } from "@/components/mermaid-diagram"
+import { MarkdownBody } from "@/components/markdown-body"
 import { ProjectOverview } from "@/components/project-overview"
 import {
   api,
@@ -20,19 +22,75 @@ import {
 import { useWorkspace } from "@/lib/workspace"
 import { Button } from "@workspace/ui/components/button"
 
-type Tab = "overview" | "files" | "diagram" | "docs"
+type Tab = "overview" | "files" | "explore" | "diagram" | "docs"
+
+function structuralMermaid(
+  nodes: Array<{ id: string; label: string; type: string }>
+): string {
+  const safe = (s: string) =>
+    s.replace(/["\[\]]/g, "").replace(/\s+/g, " ").trim().slice(0, 40) || "item"
+  const files = nodes.filter((n) => n.type === "file").slice(0, 12)
+  const byFile = new Map<string, Array<{ label: string; type: string }>>()
+  for (const n of nodes) {
+    if (n.type === "file") continue
+    const filePath = n.id.includes("::") ? n.id.split("::")[0] : ""
+    if (!filePath) continue
+    const list = byFile.get(filePath) || []
+    if (list.length < 5) list.push({ label: n.label, type: n.type })
+    byFile.set(filePath, list)
+  }
+
+  const lines = ["flowchart TB"]
+  files.forEach((f, i) => {
+    const sid = `f${i}`
+    const short = safe(f.label.split("/").slice(-2).join("/"))
+    lines.push(`  subgraph ${sid}["${short}"]`)
+    const kids = byFile.get(f.label) || []
+    kids.forEach((k, j) => {
+      const nid = `${sid}n${j}`
+      const label = safe(k.label)
+      if (k.type === "class") {
+        lines.push(`    ${nid}["${label}"]`)
+      } else {
+        lines.push(`    ${nid}("${label}")`)
+      }
+    })
+    if (kids.length === 0) {
+      lines.push(`    ${sid}empty(["…"])`)
+    }
+    lines.push("  end")
+  })
+  for (let i = 0; i < files.length - 1; i++) {
+    lines.push(`  f${i} --> f${i + 1}`)
+  }
+  return lines.join("\n")
+}
 
 export default function ProjectDetailPage() {
   const params = useParams<{ id: string }>()
   const id = params.id
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const { setActiveProjectId, openAsk } = useWorkspace()
 
-  const [tab, setTab] = useState<Tab>("overview")
+  const tabParam = searchParams.get("tab") as Tab | null
+  const pathParam = searchParams.get("path")
+  const lineParam = searchParams.get("line")
+
+  const [tab, setTabState] = useState<Tab>(
+    tabParam && ["overview", "files", "explore", "diagram", "docs"].includes(tabParam)
+      ? tabParam
+      : "overview"
+  )
   const [project, setProject] = useState<Project | null>(null)
   const [summary, setSummary] = useState<ProjectSummary | null>(null)
   const [insights, setInsights] = useState<ProjectInsights | null>(null)
   const [files, setFiles] = useState<FileRecord[]>([])
-  const [selectedPath, setSelectedPath] = useState<string | null>(null)
+  const [selectedPath, setSelectedPath] = useState<string | null>(pathParam)
+  const [focusLine, setFocusLine] = useState<number | null>(
+    lineParam && !Number.isNaN(Number(lineParam)) ? Number(lineParam) : null
+  )
   const [jobs, setJobs] = useState<Job[]>([])
   const [docs, setDocs] = useState("")
   const [docsStatus, setDocsStatus] = useState("")
@@ -44,9 +102,49 @@ export default function ProjectDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
+  const setTab = useCallback(
+    (next: Tab) => {
+      setTabState(next)
+      const q = new URLSearchParams(searchParams.toString())
+      q.set("tab", next)
+      if (next !== "files") {
+        q.delete("path")
+        q.delete("line")
+      } else if (selectedPath) {
+        q.set("path", selectedPath)
+        if (focusLine) q.set("line", String(focusLine))
+      }
+      router.replace(`${pathname}?${q.toString()}`, { scroll: false })
+    },
+    [router, pathname, searchParams, selectedPath, focusLine]
+  )
+
+  const openFile = useCallback(
+    (path: string, line?: number) => {
+      setSelectedPath(path)
+      setFocusLine(line ?? null)
+      setTabState("files")
+      const q = new URLSearchParams(searchParams.toString())
+      q.set("tab", "files")
+      q.set("path", path)
+      if (line) q.set("line", String(line))
+      else q.delete("line")
+      router.replace(`${pathname}?${q.toString()}`, { scroll: false })
+    },
+    [router, pathname, searchParams]
+  )
+
   useEffect(() => {
     setActiveProjectId(id)
   }, [id, setActiveProjectId])
+
+  useEffect(() => {
+    if (pathParam) setSelectedPath(pathParam)
+    if (lineParam && !Number.isNaN(Number(lineParam))) setFocusLine(Number(lineParam))
+    if (tabParam && ["overview", "files", "explore", "diagram", "docs"].includes(tabParam)) {
+      setTabState(tabParam)
+    }
+  }, [pathParam, lineParam, tabParam])
 
   const refresh = useCallback(async () => {
     try {
@@ -68,17 +166,31 @@ export default function ProjectDetailPage() {
 
   useEffect(() => {
     void refresh()
+  }, [refresh])
+
+  // Poll job/project status only — do not re-fetch insights (would wipe GitHub panels).
+  useEffect(() => {
     const timer = setInterval(() => {
       void api.getStatus(id).then((j) => setJobs(j.jobs || [])).catch(() => undefined)
-      void api.getProject(id).then(setProject).catch(() => undefined)
-      if (project?.status === "analyzing" || project?.status === "completed") {
+      void api
+        .getProject(id)
+        .then((p) => {
+          setProject((prev) => {
+            // When analysis finishes, refresh local summary/insights once
+            if (prev && prev.status === "analyzing" && p.status !== "analyzing") {
+              void api.getSummary(id).then(setSummary).catch(() => undefined)
+              void api.getInsights(id).then(setInsights).catch(() => undefined)
+            }
+            return p
+          })
+        })
+        .catch(() => undefined)
+      if (project?.status === "analyzing") {
         void api.getSummary(id).then(setSummary).catch(() => undefined)
-        // Local insights only on poll — GitHub sections refresh independently in Overview
-        void api.getInsights(id).then(setInsights).catch(() => undefined)
       }
     }, 5000)
     return () => clearInterval(timer)
-  }, [id, refresh, project?.status])
+  }, [id, project?.status])
 
   useEffect(() => {
     if (tab === "files") {
@@ -179,6 +291,7 @@ export default function ProjectDetailPage() {
           [
             ["overview", "Overview"],
             ["files", "Code"],
+            ["explore", "Explore"],
             ["diagram", "Diagram"],
             ["docs", "Docs"],
           ] as const
@@ -201,45 +314,58 @@ export default function ProjectDetailPage() {
         <ProjectOverview projectId={id} summary={summary} insights={insights} />
       )}
 
+      {tab === "explore" && <ExplorePanel projectId={id} onOpenFile={openFile} />}
+
       {tab === "files" && (
-        <div className="grid min-h-[560px] overflow-hidden rounded-xl border lg:grid-cols-[280px_1fr]">
-          <div className="border-b bg-muted/20 lg:border-b-0 lg:border-r">
-            <div className="border-b px-3 py-2">
+        <div className="grid h-[calc(100svh-13.5rem)] min-h-[420px] overflow-hidden rounded-xl border lg:grid-cols-[280px_1fr]">
+          <div className="flex min-h-0 flex-col border-b bg-muted/20 lg:border-b-0 lg:border-r">
+            <div className="shrink-0 border-b px-3 py-2">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Files ({files.length})
               </p>
             </div>
-            <div className="max-h-[280px] overflow-y-auto lg:max-h-[calc(100vh-280px)]">
-              <FileTree files={files} selectedPath={selectedPath} onSelect={setSelectedPath} />
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+              <FileTree
+                files={files}
+                selectedPath={selectedPath}
+                onSelect={(path) => openFile(path)}
+              />
             </div>
           </div>
-          <div className="min-h-[360px] bg-card">
-            <CodeViewer projectId={id} path={selectedPath} />
+          <div className="min-h-0 overflow-hidden bg-card">
+            <CodeViewer projectId={id} path={selectedPath} focusLine={focusLine} />
           </div>
         </div>
       )}
 
       {tab === "diagram" && (
-        <div className="rounded-xl border bg-card p-4">
-          <h3 className="mb-3 font-medium">Architecture diagram</h3>
-          {diagram?.format === "mermaid" && diagram.content ? (
-            <MermaidDiagram chart={diagram.content} />
-          ) : diagram?.nodes && diagram.nodes.length > 0 ? (
-            <ul className="space-y-1 text-sm">
-              {diagram.nodes
-                .filter((n) => n.type !== "file")
-                .slice(0, 80)
-                .map((n) => (
-                  <li key={n.id} className="font-mono text-xs">
-                    <span className="text-muted-foreground">[{n.type}]</span> {n.label}
-                  </li>
-                ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              No diagram yet. Run AI analysis to generate a Mermaid architecture diagram.
-            </p>
-          )}
+        <div className="flex h-[calc(100svh-13.5rem)] min-h-[420px] flex-col overflow-hidden rounded-xl border bg-card">
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+            <div>
+              <h3 className="font-medium">Architecture diagram</h3>
+              <p className="text-xs text-muted-foreground">
+                {diagram?.format === "mermaid"
+                  ? "AI-generated module map — scroll or zoom to explore"
+                  : "Structural map from indexed symbols"}
+              </p>
+            </div>
+          </div>
+          <div className="min-h-0 flex-1 overflow-hidden">
+            {diagram?.format === "mermaid" && diagram.content ? (
+              <MermaidDiagram chart={diagram.content} />
+            ) : diagram?.nodes && diagram.nodes.length > 0 ? (
+              <MermaidDiagram
+                chart={structuralMermaid(diagram.nodes)}
+                caption="Fallback from indexed classes and functions"
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center p-6">
+                <p className="max-w-sm text-center text-sm text-muted-foreground">
+                  No diagram yet. Run AI analysis to generate a Mermaid architecture diagram.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -255,9 +381,13 @@ export default function ProjectDetailPage() {
               {busy ? "Generating…" : docs ? "Regenerate docs" : "Generate docs"}
             </Button>
           </div>
-          <pre className="overflow-auto whitespace-pre-wrap rounded-xl border bg-card p-4 font-mono text-sm leading-relaxed">
-            {docs || "No documentation yet."}
-          </pre>
+          <div className="rounded-xl border bg-card p-5">
+            {docs ? (
+              <MarkdownBody content={docs} className="max-h-[calc(100svh-14rem)]" />
+            ) : (
+              <p className="text-sm text-muted-foreground">No documentation yet.</p>
+            )}
+          </div>
         </div>
       )}
     </AppShell>

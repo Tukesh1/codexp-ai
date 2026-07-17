@@ -1,126 +1,82 @@
-import { Check } from 'lucide-react'
-import Link from 'next/link'
+import Link from "next/link"
+import { APP_URL } from "@/config/site"
 
 const plans = [
   {
-    name: 'Free',
-    price: 0,
-    description: 'Perfect for exploring Codexp AI capabilities.',
+    name: "Free",
+    price: "0",
+    blurb: "Explore on public repos with your own API key.",
     features: [
-      '1 public repository',
-      'Basic code analysis',
-      'Function summaries',
-      '50 Q&A queries per month',
-      'Community support',
-      'Export basic docs',
-      'GitHub integration'
+      "Connect public GitHub repos",
+      "Overview, Code, Diagram, Docs, Explore",
+      "Select-to-explain & Ask",
+      "Bring your own LLM key",
     ],
-    cta: 'Get started',
-    popular: false
+    cta: "Start free",
+    highlight: false,
   },
   {
-    name: 'Developer',
-    price: 19,
-    originalPrice: 39,
-    description: 'For individual developers and small projects.',
+    name: "Developer",
+    price: "19",
+    blurb: "For private repos and heavier daily use.",
     features: [
-      'Unlimited private repositories',
-      'Advanced code analysis',
-      'Auto documentation generation',
-      'Dependency diagrams',
-      'Unlimited Q&A queries',
-      '50K analysis tokens daily',
-      'Email support',
-      'Export all formats',
-      'PR analysis',
-      'API access'
+      "Private repositories",
+      "GitHub token insights",
+      "Unlimited Ask (within your provider limits)",
+      "Priority analysis queue",
     ],
-    cta: 'Start 14 day trial',
-    popular: true
-  }
+    cta: "Start with Free",
+    highlight: true,
+  },
 ]
 
 export function Pricing() {
   return (
-    <section id="pricing" className="py-24 bg-[#0D0C0D]">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-white mb-4">
-            Simple, transparent pricing
-          </h2>
-          <p className="text-gray-400 text-lg">
-            Start free and scale as your development projects grow. No hidden fees.
-          </p>
-        </div>
+    <section id="pricing" className="border-t border-[var(--line)] py-24 md:py-32">
+      <div className="mx-auto max-w-6xl px-4 md:px-6">
+        <h2 className="font-[family-name:var(--font-display)] text-3xl font-bold tracking-tight text-[var(--fg)] md:text-4xl">
+          Pricing that stays out of the way
+        </h2>
+        <p className="mt-3 max-w-lg text-[var(--fg-muted)]">
+          You pay your model provider. Codexp is the workspace on top.
+        </p>
 
-        {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-          {plans.map((plan, index) => (
+        <div className="mt-14 grid gap-px bg-[var(--line)] md:grid-cols-2">
+          {plans.map((plan) => (
             <div
-              key={index}
-              className={`relative bg-[#1A1A1A] border border-[#2C2C2C] p-8 ${
-                plan.popular ? 'ring-1 ring-white/20' : ''
+              key={plan.name}
+              className={`flex flex-col p-8 md:p-10 ${
+                plan.highlight ? "bg-[var(--bg-elevated)]" : "bg-[var(--bg)]"
               }`}
             >
-              {plan.popular && (
-                <div className="absolute -top-3 right-6">
-                  <div className="bg-white text-black px-3 py-1 text-xs font-medium uppercase tracking-wide">
-                    Current offer
-                  </div>
-                </div>
-              )}
-
-              <div className="mb-8">
-                <h3 className="text-2xl font-semibold text-white mb-2">{plan.name}</h3>
-                
-                <div className="flex items-baseline mb-4">
-                  {plan.originalPrice && (
-                    <span className="text-2xl text-gray-500 line-through mr-2">
-                      ${plan.originalPrice}
-                    </span>
-                  )}
-                  <span className="text-4xl font-bold text-white">{plan.price}</span>
-                  <span className="text-gray-400 ml-2">/mo</span>
-                  <span className="text-gray-500 ml-2 text-sm">excl. VAT</span>
-                </div>
-
-                <p className="text-gray-400 text-sm mb-6">{plan.description}</p>
-
-                <div className="mb-6">
-                  <h4 className="text-white font-medium text-sm mb-4 uppercase tracking-wide">
-                    Including:
-                  </h4>
-                  <ul className="space-y-2">
-                    {plan.features.map((feature, featureIndex) => (
-                      <li key={featureIndex} className="flex items-start space-x-3">
-                        <Check className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
-                        <span className="text-gray-300 text-sm">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <Link
-                  href="http://localhost:3000/login"
-                  className={`w-full py-3 px-6 text-center font-medium transition-colors ${
-                    plan.popular
-                      ? 'bg-white text-black hover:bg-gray-100'
-                      : 'border border-[#2C2C2C] text-white hover:bg-[#2C2C2C]'
-                  }`}
-                >
-                  {plan.cta}
-                </Link>
-              </div>
-
-              <div className="text-center">
-                <p className="text-xs text-gray-500">
-                  {plan.popular 
-                    ? 'New users? Plan free 14 contact us'
-                    : '14 day trial. No credit card required.'
-                  }
+              <div className="flex items-baseline justify-between gap-4">
+                <h3 className="text-xl font-semibold tracking-tight text-[var(--fg)]">
+                  {plan.name}
+                </h3>
+                <p className="font-[family-name:var(--font-mono)] text-2xl text-[var(--fg)]">
+                  ${plan.price}
+                  <span className="text-sm text-[var(--fg-muted)]">/mo</span>
                 </p>
               </div>
+              <p className="mt-3 text-sm text-[var(--fg-muted)]">{plan.blurb}</p>
+              <ul className="mt-8 flex-1 space-y-3">
+                {plan.features.map((f) => (
+                  <li key={f} className="flex gap-3 text-sm text-[var(--fg-muted)]">
+                    <span className="mt-2 size-1 shrink-0 bg-[var(--fg)]" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href={`${APP_URL}/projects/new`}
+                className={`mt-10 block px-4 py-3 text-center text-sm font-semibold transition ${
+                  plan.highlight
+                    ? "bg-[var(--fg)] text-[var(--inverse)] hover:opacity-85"
+                    : "border border-[var(--fg)] text-[var(--fg)] hover:bg-[var(--fg)] hover:text-[var(--inverse)]"
+                }`}
+              >
+                {plan.cta}
+              </Link>
             </div>
           ))}
         </div>

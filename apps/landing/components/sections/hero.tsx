@@ -1,127 +1,183 @@
-import Link from 'next/link'
-import { ArrowRight, Sparkles } from 'lucide-react'
+"use client"
+
+import { useEffect, useState } from "react"
+import Link from "next/link"
+import { APP_URL, GITHUB_URL } from "@/config/site"
+import { RepoCta } from "@/components/sections/repo-cta"
+
+const LENSES = ["architect", "security", "beginner", "reviewer"] as const
+
+const ANSWERS: Record<(typeof LENSES)[number], string> = {
+  architect:
+    "This wires selection + lens into Ask so the model focuses on the highlighted slice — module boundary, not the whole file.",
+  security:
+    "Watch the trust boundary: credentials and selection code leave your browser only toward your configured provider.",
+  beginner:
+    "You highlighted a function call. Codexp sends that snippet with your question so the answer stays concrete.",
+  reviewer:
+    "Prefer keeping AskWithOptions thin — selection, files, and lens are enough context for a precise review.",
+}
 
 export function Hero() {
+  const [lensIdx, setLensIdx] = useState(0)
+  const [typed, setTyped] = useState("")
+  const [phase, setPhase] = useState<"select" | "ask" | "hold">("select")
+
+  const lens = LENSES[lensIdx] ?? LENSES[0]
+
+  useEffect(() => {
+    const reduce =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    if (reduce) {
+      setPhase("hold")
+      setTyped(ANSWERS[LENSES[0]])
+      return
+    }
+
+    let cancelled = false
+    const timers: number[] = []
+
+    const run = (idx: number) => {
+      if (cancelled) return
+      setLensIdx(idx)
+      setPhase("select")
+      setTyped("")
+
+      timers.push(
+        window.setTimeout(() => {
+          if (cancelled) return
+          setPhase("ask")
+          const current = LENSES[idx] ?? LENSES[0]
+          const full = ANSWERS[current]
+          let i = 0
+          const tick = () => {
+            if (cancelled) return
+            i += 1
+            setTyped(full.slice(0, i))
+            if (i < full.length) {
+              timers.push(window.setTimeout(tick, 14))
+            } else {
+              setPhase("hold")
+              timers.push(window.setTimeout(() => run((idx + 1) % LENSES.length), 2200))
+            }
+          }
+          timers.push(window.setTimeout(tick, 280))
+        }, 900)
+      )
+    }
+
+    run(0)
+    return () => {
+      cancelled = true
+      timers.forEach((t) => window.clearTimeout(t))
+    }
+  }, [])
+
   return (
-    <section className="relative overflow-hidden bg-[#0D0C0D]">
-      <div className="container mx-auto px-4 pt-32 pb-16">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
-          {/* Left Content */}
-          <div className="space-y-8 max-w-2xl">
-            {/* Version Badge */}
-            {/* <div className="flex items-center space-x-2 text-[#878787] text-sm font-mono">
-              <span>FlowBite v2.0</span>
-              <ArrowRight className="w-4 h-4" />
-            </div> */}
-            <div className="inline-flex items-center px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/30 mb-8">
-            <Sparkles className="w-4 h-4 mr-2 text-blue-300" />
-            <span className="text-sm font-medium text-white/80">
-              Trusted by developers at leading tech companies
-            </span>
+    <section className="relative isolate overflow-hidden">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_70%_45%_at_50%_-5%,rgba(245,245,245,0.07),transparent_55%)]"
+      />
+      <div aria-hidden className="landing-grid absolute inset-0 -z-10" />
+      <div aria-hidden className="landing-grain absolute inset-0 -z-10" />
+
+      <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-4 py-16 md:px-6 lg:grid-cols-2 lg:gap-14 lg:py-20">
+        <div className="relative z-10 max-w-xl">
+          <p className="landing-rise font-[family-name:var(--font-display)] text-6xl font-extrabold tracking-[-0.04em] text-[var(--fg)] sm:text-7xl md:text-8xl">
+            Codexp
+          </p>
+          <h1 className="landing-rise landing-rise-delay-1 mt-7 max-w-md text-xl font-medium leading-snug tracking-tight text-[var(--fg)] md:text-2xl">
+            Understand any GitHub repo — overview, diagrams, Ask on what you highlight.
+          </h1>
+          <p className="landing-rise landing-rise-delay-2 mt-4 max-w-sm text-[15px] leading-relaxed text-[var(--fg-muted)]">
+            Bring your own key. Index once. Explore with lenses, graphs, and notes.
+          </p>
+
+          <div className="landing-rise landing-rise-delay-3 mt-9">
+            <RepoCta />
           </div>
-            {/* Main Headline */}
-            <div className="space-y-6">
-              <h1 className="text-2xl md:text-5xl lg:text-5xl font-light text-[#878787] leading-[1.1] tracking-tight">
-                Explain, document, and visualize codebases automatically with{' '}
-                <span className="text-[#F5F5F3] font-medium">AI-powered analysis</span>
-              </h1>
-              <p className="text-lg text-[#878787] max-w-xl">
-                Ship dev-ready docs, diagrams, and Q&A for any repository in minutes. Understand unfamiliar code instantly.
+
+          <div className="landing-rise landing-rise-delay-3 mt-5 flex flex-wrap gap-6 font-[family-name:var(--font-mono)] text-xs tracking-wide text-[var(--fg-muted)]">
+            <Link href={`${APP_URL}/login`} className="transition hover:text-[var(--fg)]">
+              Sign in
+            </Link>
+            <Link href={GITHUB_URL} className="transition hover:text-[var(--fg)]">
+              Source
+            </Link>
+          </div>
+        </div>
+
+        <div className="landing-rise landing-rise-delay-2 relative z-10 w-full">
+          <div className="overflow-hidden border border-[var(--line)] bg-[var(--bg-elevated)]">
+            <div className="flex items-center gap-2 border-b border-[var(--line)] px-4 py-2.5">
+              <span className="size-2 bg-[var(--fg)]/20" />
+              <span className="size-2 bg-[var(--fg)]/20" />
+              <span className="size-2 bg-[var(--fg)]/20" />
+              <span className="ml-3 font-[family-name:var(--font-mono)] text-[11px] text-[var(--fg-muted)]">
+                services/project.go
+              </span>
+            </div>
+
+            <div className="border-b border-[var(--line)] p-4 font-[family-name:var(--font-mono)] text-[12px] leading-[1.7] sm:p-5 sm:text-[13px]">
+              <div className="flex gap-4">
+                <div className="select-none text-right text-[var(--fg-muted)]/40">
+                  {[318, 319, 320, 321, 322, 323, 324].map((n) => (
+                    <div key={n}>{n}</div>
+                  ))}
+                </div>
+                <pre className="overflow-x-auto whitespace-pre text-[var(--fg-muted)]">
+                  <code>
+                    {`func AskQuestion(...) {\n`}
+                    <span
+                      className={`block transition-colors duration-500 ${
+                        phase !== "select"
+                          ? "bg-[var(--select)] text-[var(--fg)]"
+                          : "text-[var(--fg-muted)]"
+                      }`}
+                    >
+                      {`  out, err := ai.AskWithOptions(\n`}
+                      {`    id, q, sel, files, "`}
+                      <span className="font-medium text-[var(--fg)]">{lens}</span>
+                      {`",\n`}
+                      {`  )\n`}
+                    </span>
+                    {`  return out, err\n}`}
+                  </code>
+                </pre>
+              </div>
+            </div>
+
+            <div
+              className={`bg-[var(--bg)] p-4 transition-opacity duration-500 sm:p-5 ${
+                phase === "select" ? "opacity-45" : "opacity-100"
+              }`}
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-[0.2em] text-[var(--fg-muted)]">
+                  Select → explain
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {LENSES.map((l, i) => (
+                    <span
+                      key={l}
+                      className={`px-2 py-0.5 font-[family-name:var(--font-mono)] text-[10px] transition ${
+                        i === lensIdx
+                          ? "bg-[var(--fg)] text-[var(--inverse)]"
+                          : "text-[var(--fg-muted)]"
+                      }`}
+                    >
+                      {l}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <p className="mt-3 min-h-[4.5rem] text-sm leading-relaxed text-[var(--fg)]">
+                {typed}
+                <span className="landing-cursor text-[var(--fg)]">{"▌"}</span>
               </p>
-            </div>
-
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-4">
-              <Link
-                href="http://localhost:3000/login"
-                className="inline-flex items-center justify-center px-6 py-3 bg-[#F5F5F3] text-[#0C0C0C] text-sm font-medium hover:bg-[#E5E5E3] transition-colors border border-[#E5E5E3]"
-              >
-                Get Started Free
-              </Link>
-              <Link
-                href="https://github.com/Tukesh1/codexp-ai"
-                className="inline-flex items-center justify-center px-6 py-3 border border-[#2C2C2C] text-[#F5F5F3] text-sm font-medium hover:bg-[#1A1A1A] transition-colors"
-              >
-                View on GitHub
-              </Link>
-            </div>
-          </div>
-
-          {/* Right Content - Dashboard Preview */}
-          <div className="relative lg:mt-8">
-            <div className="relative">
-              {/* Main Dashboard Window */}
-              <div className="bg-[#0C0C0C] border border-[#2C2C2C] overflow-hidden shadow-2xl">
-                {/* Window Header */}
-                <div className="bg-[#1A1A1A] px-4 py-3 border-b border-[#2C2C2C]">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 bg-[#FF5F57] rounded-full"></div>
-                    <div className="w-3 h-3 bg-[#FFBD2E] rounded-full"></div>
-                    <div className="w-3 h-3 bg-[#28CA42] rounded-full"></div>
-                  </div>
-                </div>
-
-                {/* Code Analysis Dashboard */}
-                <div className="p-6 space-y-6">
-                  {/* Stats Cards */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-[#1A1A1A] p-4 border border-[#2C2C2C]">
-                      <div className="text-2xl font-semibold text-[#F5F5F3] mb-1 font-mono">2,847</div>
-                      <div className="text-[#878787] text-sm">Functions</div>
-                    </div>
-                    <div className="bg-[#1A1A1A] p-4 border border-[#2C2C2C]">
-                      <div className="text-2xl font-semibold text-[#F5F5F3] mb-1 font-mono">98%</div>
-                      <div className="text-[#878787] text-sm">Documented</div>
-                    </div>
-                  </div>
-
-                  {/* Code Structure Visualization */}
-                  <div className="bg-[#1A1A1A] p-4 border border-[#2C2C2C] h-32">
-                    <div className="text-[#878787] text-xs mb-2">Code Structure</div>
-                    <div className="space-y-2">
-                      {['Python 45%', 'TypeScript 30%', 'Go 15%', 'Other 10%'].map((lang, i) => (
-                        <div key={i} className="flex items-center space-x-2">
-                          <div className={`w-2 h-2 rounded-full ${
-                            i === 0 ? 'bg-blue-400' : i === 1 ? 'bg-yellow-400' : i === 2 ? 'bg-green-400' : 'bg-gray-400'
-                          }`}></div>
-                          <div className="text-[#F5F5F3] text-xs flex-1">{lang}</div>
-                          <div className={`h-1 flex-1 rounded ${
-                            i === 0 ? 'bg-blue-400' : i === 1 ? 'bg-yellow-400' : i === 2 ? 'bg-green-400' : 'bg-gray-400'
-                          }`} style={{ width: `${45 - i * 10}%` }}></div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Recent Analysis */}
-                  <div className="space-y-3">
-                    <div className="text-[#F5F5F3] text-sm font-medium">Recent Analysis</div>
-                    {[
-                      { name: 'auth.py', type: 'Function', status: 'Analyzed' },
-                      { name: 'UserService', type: 'Class', status: 'Documented' },
-                      { name: 'main.go', type: 'File', status: 'Analyzed' }
-                    ].map((item, i) => (
-                      <div key={i} className="flex items-center space-x-3 text-sm">
-                        <div className="w-2 h-2 bg-[#28CA42] rounded-full"></div>
-                        <div className="text-[#F5F5F3]">{item.name}</div>
-                        <div className="text-[#878787] text-xs bg-[#2C2C2C] px-2 py-1 rounded">{item.type}</div>
-                        <div className="text-[#878787] ml-auto">2m ago</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Floating Elements */}
-              <div className="absolute -top-4 -right-4 bg-[#1A1A1A] border border-[#2C2C2C] p-3 shadow-xl">
-                <div className="text-[#28CA42] text-sm font-medium font-mono">95% Match</div>
-                <div className="text-[#878787] text-xs">Q&A Accuracy</div>
-              </div>
-
-              <div className="absolute -bottom-4 -left-4 bg-[#1A1A1A] border border-[#2C2C2C] p-3 shadow-xl">
-                <div className="text-[#3B82F6] text-sm font-medium font-mono">3.2 min</div>
-                <div className="text-[#878787] text-xs">Analysis Time</div>
-              </div>
+              <div className="mt-3 h-px w-full bg-[var(--fg)] landing-sweep" />
             </div>
           </div>
         </div>

@@ -1,119 +1,89 @@
-import { 
-  Code2, 
-  Zap, 
-  FileText, 
-  MessageSquare, 
-  GitBranch, 
-  Search,
-  ArrowRight
-} from 'lucide-react'
-
-const features = [
+const steps = [
   {
-    icon: Code2,
-    title: 'Smart Code Analysis',
-    description: 'AI-powered parsing using tree-sitter to understand your codebase structure, functions, and relationships.',
-    color: 'from-blue-500 to-blue-600'
+    n: "01",
+    title: "Connect a repo",
+    body: "Paste a GitHub URL. Codexp clones, indexes symbols, and embeds what it finds.",
   },
   {
-    icon: FileText,
-    title: 'Auto Documentation',
-    description: 'Generate comprehensive docs, function summaries, and API documentation automatically from your code.',
-    color: 'from-green-500 to-emerald-600'
+    n: "02",
+    title: "Read the map",
+    body: "Overview readiness, language mix, architecture diagrams, and generated docs.",
   },
   {
-    icon: MessageSquare,
-    title: 'Intelligent Q&A',
-    description: 'Ask questions about your codebase and get accurate, context-aware answers powered by AI.',
-    color: 'from-purple-500 to-purple-600'
+    n: "03",
+    title: "Ask on the code",
+    body: "Highlight a selection, pick a lens, or open Explore for graphs, quizzes, and notes.",
   },
-  {
-    icon: GitBranch,
-    title: 'Visual Diagrams',
-    description: 'Create dependency graphs, call diagrams, and architectural visualizations from your codebase.',
-    color: 'from-orange-500 to-red-500'
-  },
-  {
-    icon: Search,
-    title: 'Semantic Search',
-    description: 'Find code by meaning, not just text. Search for functionality across your entire codebase.',
-    color: 'from-cyan-500 to-blue-500'
-  },
-  {
-    icon: Zap,
-    title: 'Multi-Language',
-    description: 'Support for Python, JavaScript, TypeScript, Go, C++, and more programming languages.',
-    color: 'from-yellow-500 to-orange-500'
-  }
 ]
 
-const stats = [
-  { label: 'Languages Supported', value: '25+' },
-  { label: 'Functions Analyzed', value: '10M+' },
-  { label: 'Analysis Accuracy', value: '99.5%' },
-  { label: 'Repositories', value: '5K+' }
+const capabilities = [
+  {
+    title: "Select to explain",
+    body: "Highlight any slice of a file. Get a focused answer with selection context, not a generic chat dump.",
+  },
+  {
+    title: "Explore tools",
+    body: "Call graphs, concept clusters, dead-end paths, change briefings after re-analyze, and learning quizzes.",
+  },
+  {
+    title: "Your keys, your models",
+    body: "OpenAI or Gemini from Settings. Optional GitHub token for private repos and richer insights.",
+  },
+  {
+    title: "Sticky mental notes",
+    body: "Pin observations on files and symbols so the next time you open the repo, context is still there.",
+  },
 ]
 
 export function Features() {
   return (
-    <section id="features" className="py-24 bg-[#0D0C0D]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
-        <div className="text-center mb-16">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4">
-            Understand any codebase
-            <span className="bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent"> instantly</span>
+    <>
+      <section id="how" className="border-t border-[var(--line)] py-24 md:py-32">
+        <div className="mx-auto max-w-6xl px-4 md:px-6">
+          <h2 className="max-w-lg font-[family-name:var(--font-display)] text-3xl font-bold tracking-tight text-[var(--fg)] md:text-4xl">
+            From clone to clarity in three moves
           </h2>
-          <p className="text-xl text-gray-400 max-w-3xl mx-auto">
-            Powerful AI-driven features that make complex codebases accessible and comprehensible for developers at any level.
+          <p className="mt-3 max-w-md text-[var(--fg-muted)]">
+            Built for the messy middle of onboarding a foreign repository.
           </p>
+          <ol className="mt-16 grid gap-12 md:grid-cols-3 md:gap-10">
+            {steps.map((step) => (
+              <li key={step.n}>
+                <span className="font-[family-name:var(--font-mono)] text-xs tracking-[0.2em] text-[var(--fg-muted)]">
+                  {step.n}
+                </span>
+                <h3 className="mt-3 text-xl font-semibold tracking-tight text-[var(--fg)]">
+                  {step.title}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--fg-muted)]">{step.body}</p>
+              </li>
+            ))}
+          </ol>
         </div>
+      </section>
 
-        {/* Features Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-20">
-          {features.map((feature, index) => (
-            <div 
-              key={index}
-              className="group p-8 border border-gray-800 hover:border-gray-700 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-[#0D0C0D]/80">
-            
-              <div className={`w-14 h-14 bg-gradient-to-r ${feature.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
-                <feature.icon className="w-7 h-7 text-white" />
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-3">
-                {feature.title}
-              </h3>
-              <p className="text-gray-400 leading-relaxed">
-                {feature.description}
+      <section id="product" className="border-t border-[var(--line)] py-24 md:py-32">
+        <div className="mx-auto max-w-6xl px-4 md:px-6">
+          <div className="grid gap-12 lg:grid-cols-[0.85fr_1.15fr] lg:gap-20">
+            <div>
+              <h2 className="font-[family-name:var(--font-display)] text-3xl font-bold tracking-tight text-[var(--fg)] md:text-4xl">
+                What you actually get
+              </h2>
+              <p className="mt-3 text-[var(--fg-muted)]">
+                No placeholder dashboards — these ship in the product today.
               </p>
             </div>
-          ))}
-        </div>
-
-        {/* Stats Section */}
-        <div className="bg-gradient-to-r from-gray-900 to-black border border-gray-800 p-12 text-white">
-          <div className="text-center mb-12">
-            <h3 className="text-2xl sm:text-3xl font-bold mb-4">
-              Trusted by developers worldwide
-            </h3>
-            <p className="text-gray-300 text-lg">
-              Join thousands of developers using Codexp AI to understand and document their codebases
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
-              <div key={index} className="text-center">
-                <div className="text-3xl sm:text-4xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
-                  {stat.value}
-                </div>
-                <div className="text-gray-300 text-sm sm:text-base">
-                  {stat.label}
-                </div>
-              </div>
-            ))}
+            <ul className="divide-y divide-[var(--line)] border-y border-[var(--line)]">
+              {capabilities.map((item) => (
+                <li key={item.title} className="grid gap-2 py-7 sm:grid-cols-[11rem_1fr] sm:gap-10">
+                  <h3 className="text-sm font-semibold text-[var(--fg)]">{item.title}</h3>
+                  <p className="text-sm leading-relaxed text-[var(--fg-muted)]">{item.body}</p>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   )
 }

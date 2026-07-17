@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, Suspense } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowRight, Github, Loader2 } from "lucide-react"
 import { AppShell } from "@/components/app-shell"
 import { api } from "@/lib/api"
@@ -45,13 +45,33 @@ function parseGitHubRepo(input: string): { owner: string; repo: string; url: str
 }
 
 export default function NewProjectPage() {
+  return (
+    <Suspense fallback={
+      <AppShell title="New project">
+        <div className="mx-auto flex w-full max-w-lg justify-center py-12 text-sm text-muted-foreground">
+          Loading…
+        </div>
+      </AppShell>
+    }>
+      <NewProjectForm />
+    </Suspense>
+  )
+}
+
+function NewProjectForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user } = useAuth()
   const [repoInput, setRepoInput] = useState("")
   const [analyzeNow, setAnalyzeNow] = useState(true)
   const [hasKey, setHasKey] = useState<boolean | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    const fromLanding = searchParams.get("repo")
+    if (fromLanding) setRepoInput(fromLanding)
+  }, [searchParams])
 
   const parsed = useMemo(() => parseGitHubRepo(repoInput), [repoInput])
 

@@ -1,16 +1,13 @@
-import { Geist, Geist_Mono, Gugi } from "next/font/google"
+import { IBM_Plex_Mono, Syne } from "next/font/google"
 
-export const fontSans = Geist({
+export const fontDisplay = Syne({
   subsets: ["latin"],
-  variable: "--font-sans",
+  variable: "--font-display",
+  weight: ["500", "600", "700", "800"],
 })
 
-export const fontMono = Geist_Mono({
+export const fontMono = IBM_Plex_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
-})
-
-export const gugi = Gugi({ 
-  weight: ['400'], 
-  subsets: ['latin'] 
+  weight: ["400", "500"],
 })

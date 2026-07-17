@@ -1,23 +1,23 @@
-import { Hero } from '@/components/sections/hero'
-import { Features } from '@/components/sections/features'
-import { Testimonials } from '@/components/sections/testimonials'
-import { Pricing } from '@/components/sections/pricing'
-import { CTA } from '@/components/sections/cta'
-import { Footer } from '@/components/layout/footer'
-import { Header } from '@/components/layout/header'
+import { Header } from "@/components/layout/header"
+import { Footer } from "@/components/layout/footer"
+import { Hero } from "@/components/sections/hero"
+import { Features } from "@/components/sections/features"
+import { ProductTour } from "@/components/sections/product-tour"
+import { Pricing } from "@/components/sections/pricing"
+import { CTA } from "@/components/sections/cta"
+
 export default function Home() {
   return (
-    <div className="min-h-screen bg-[#0D0C0D]">
+    <div className="landing-root">
       <Header />
       <main>
-        
         <Hero />
+        <ProductTour />
         <Features />
-        <Testimonials />
         <Pricing />
         <CTA />
       </main>
       <Footer />
     </div>
-  );
+  )
 }

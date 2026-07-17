@@ -1,11 +1,15 @@
-import { fontSans, fontMono } from "@/lib/fonts"
+import { fontDisplay, fontMono } from "@/lib/fonts"
 import { Metadata } from "next"
 import "@workspace/ui/globals.css"
+import "./landing.css"
 import { Providers } from "@/components/ui/providers"
 import { SiteMetadata } from "@/config/site"
 
 export const metadata: Metadata = {
-  ...SiteMetadata
+  ...SiteMetadata,
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_LANDING_URL || "http://localhost:3002"
+  ),
 }
 
 export default function RootLayout({
@@ -16,7 +20,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${fontSans.variable} ${fontMono.variable} font-sans antialiased text-white bg-[#0D0C0D]`}
+        className={`${fontDisplay.variable} ${fontMono.variable} font-[family-name:var(--font-display)] antialiased bg-[#050505] text-[#f5f5f5]`}
       >
         <Providers>{children}</Providers>
       </body>

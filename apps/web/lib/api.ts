@@ -181,6 +181,53 @@ export type ProjectInsights = {
   github_token_configured?: boolean
 }
 
+export type Note = {
+  id: string
+  project_id: string
+  user_id: string
+  path: string
+  start_line?: number | null
+  end_line?: number | null
+  symbol_name?: string | null
+  content: string
+  created_at: string
+  updated_at: string
+}
+
+export type AskContext = {
+  path?: string
+  code: string
+  language?: string
+  start_line?: number
+  end_line?: number
+}
+
+export type Readiness = {
+  file_count: number
+  function_count: number
+  class_count: number
+  embedding_count: number
+  embedded_functions?: number
+  embedded_classes?: number
+  has_overview: boolean
+  has_diagram: boolean
+  has_docs: boolean
+  coverage_pct: number
+  dead_end_files?: Array<{ path: string; reason: string; size_bytes?: number }>
+  vendor_paths?: string[]
+  score: number
+  label: string
+  detail?: string
+}
+
+export type ConceptCluster = {
+  id: string
+  name: string
+  size: number
+  method?: string
+  symbols: Array<{ id?: string; name: string; path: string; kind: string }>
+}
+
 export type Job = {
   id: string
   project_id?: string
@@ -336,14 +383,167 @@ export const api = {
     )
   },
 
-  async ask(id: string, question: string) {
+  async ask(
+    id: string,
+    question: string,
+    context?: AskContext,
+    opts?: { lens?: string; files?: AskContext[] }
+  ) {
     return request<{ answer: string; sources: Array<Record<string, unknown>>; question: string }>(
       `/api/v1/projects/${id}/ask`,
       {
         method: "POST",
-        body: JSON.stringify({ question }),
+        body: JSON.stringify({
+          question,
+          ...(opts?.lens ? { lens: opts.lens } : {}),
+          ...(opts?.files?.length
+            ? {
+                files: opts.files.map((f) => ({
+                  path: f.path || "",
+                  code: f.code,
+                  language: f.language || "",
+                  start_line: f.start_line || 0,
+                  end_line: f.end_line || 0,
+                })),
+              }
+            : {}),
+          ...(context?.code
+            ? {
+                context: {
+                  path: context.path || "",
+                  code: context.code,
+                  language: context.language || "",
+                  start_line: context.start_line || 0,
+                  end_line: context.end_line || 0,
+                },
+              }
+            : {}),
+        }),
       }
     )
+  },
+
+  async getReadiness(id: string) {
+    return request<Readiness>(`/api/v1/projects/${id}/readiness`)
+  },
+
+  async getConcepts(id: string) {
+    return request<{
+      clusters: ConceptCluster[]
+      method?: string
+      message?: string
+      cached?: boolean
+    }>(`/api/v1/projects/${id}/concepts`)
+  },
+
+  async getDeadEnds(id: string) {
+    return request<{
+      files: Array<{ path: string; reason: string; size_bytes?: number; language?: string }>
+      tiny_file_folders?: Array<{ folder: string; file_count: number; avg_size: number }>
+    }>(`/api/v1/projects/${id}/dead-ends`)
+  },
+
+  async getChanges(id: string) {
+    return request<{
+      baseline?: boolean
+      message?: string
+      added?: string[]
+      removed?: string[]
+      cached?: boolean
+      generated_at?: string
+    }>(`/api/v1/projects/${id}/changes`)
+  },
+
+  async getSymbolGraph(id: string, name: string, path?: string) {
+    const q = new URLSearchParams({ name })
+    if (path) q.set("path", path)
+    return request<{
+      symbol: { name: string; path: string; kind?: string; id?: string; start_line?: number }
+      callers: Array<{ name?: string; path?: string; kind?: string; line?: number; url?: string; source?: string }>
+      callees: Array<{ name?: string; path?: string; kind?: string; line?: number; url?: string; source?: string }>
+      related: Array<{ name: string; path: string; kind?: string; id?: string }>
+    }>(`/api/v1/projects/${id}/graph?${q.toString()}`)
+  },
+
+  async listNotes(id: string, path?: string) {
+    const q = path ? `?path=${encodeURIComponent(path)}` : ""
+    return request<{ notes: Note[] }>(`/api/v1/projects/${id}/notes${q}`)
+  },
+
+  async createNote(
+    id: string,
+    payload: {
+      path: string
+      content: string
+      start_line?: number
+      end_line?: number
+      symbol_name?: string
+    }
+  ) {
+    return request<Note>(`/api/v1/projects/${id}/notes`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+  },
+
+  async updateNote(id: string, noteId: string, payload: { content?: string }) {
+    return request<Note>(`/api/v1/projects/${id}/notes/${noteId}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    })
+  },
+
+  async deleteNote(id: string, noteId: string) {
+    return request<void>(`/api/v1/projects/${id}/notes/${noteId}`, {
+      method: "DELETE",
+    })
+  },
+
+  async generateQuiz(id: string) {
+    return request<{
+      id: string
+      project_id: string
+      quiz: {
+        questions: Array<{
+          question: string
+          options: string[]
+          correct_index?: number
+          explanation?: string
+        }>
+      }
+      created_at: string
+    }>(`/api/v1/projects/${id}/quiz/generate`, { method: "POST" })
+  },
+
+  async submitQuiz(id: string, attemptId: string, answers: number[]) {
+    return request<{
+      attempt_id: string
+      score: number
+      correct: number
+      total: number
+      results: Array<{
+        question: string
+        user_answer: number
+        correct_answer: number
+        is_correct: boolean
+        explanation: string
+        correct_option?: string
+        selected_option?: string
+      }>
+    }>(`/api/v1/projects/${id}/quiz/${attemptId}/submit`, {
+      method: "POST",
+      body: JSON.stringify({ answers }),
+    })
+  },
+
+  async latestQuiz(id: string) {
+    return request<{
+      id: string
+      quiz: unknown
+      answers?: unknown
+      score?: number
+      created_at: string
+    }>(`/api/v1/projects/${id}/quiz/latest`)
   },
 
   async getDocs(id: string) {

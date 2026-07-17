@@ -17,6 +17,7 @@ from app.services.llm_service import (
     build_project_context,
     load_user_credentials_for_project,
     store_analysis,
+    get_latest_analysis,
 )
 
 logger = logging.getLogger(__name__)
@@ -101,6 +102,8 @@ class JobWorker:
             await self._clone_repo(repo_url, repo_path)
 
             await self._update_job(job_id, "running", 35)
+            # Capture previous symbol snapshot before re-analyze for changelog
+            prev_snapshot = await get_latest_analysis(project_id, "symbol_snapshot")
             analyzer = CodeAnalyzer(self.model_manager)
             result = await analyzer.analyze_repository(repo_path, project_id)
 
@@ -126,6 +129,15 @@ class JobWorker:
                 {"format": "mermaid", "content": diagram},
             )
 
+            await self._update_job(job_id, "running", 92)
+            current_snapshot = await self._build_symbol_snapshot(project_id)
+            await store_analysis(project_id, "symbol_snapshot", current_snapshot)
+            if prev_snapshot:
+                changelog = await self._build_changelog(
+                    llm, prev_snapshot, current_snapshot
+                )
+                await store_analysis(project_id, "changelog", changelog)
+
             await self._update_job(job_id, "running", 95)
             await store_analysis(
                 project_id,
@@ -137,6 +149,9 @@ class JobWorker:
                     "diagram_generated": True,
                 },
             )
+
+            # Save symbol snapshot for changelog feature
+            await self._save_symbol_snapshot(project_id)
 
             await self._update_project_status(project_id, "completed")
             await self._update_job(job_id, "completed", 100)
@@ -259,6 +274,31 @@ class JobWorker:
             project_id,
         )
 
+    async def _save_symbol_snapshot(self, project_id: str):
+        """Save current symbol set as a snapshot for changelog computation."""
+        try:
+            rows = await database.fetch(
+                """
+                SELECT entity_type || ':' || name || ':' || path as symbol_key FROM (
+                    SELECT 'function' as entity_type, f.name, fl.path
+                    FROM functions f
+                    JOIN files fl ON fl.id = f.file_id
+                    WHERE fl.project_id = $1
+                    UNION ALL
+                    SELECT 'class' as entity_type, c.name, fl.path
+                    FROM classes c
+                    JOIN files fl ON fl.id = c.file_id
+                    WHERE fl.project_id = $1
+                ) symbols
+                """,
+                project_id,
+            )
+            snapshot = {row["symbol_key"]: True for row in rows}
+            await store_analysis(project_id, "symbol_snapshot", snapshot)
+            logger.info("Saved symbol snapshot for project %s with %d symbols", project_id, len(snapshot))
+        except Exception as e:
+            logger.warning("Failed to save symbol snapshot: %s", e)
+
     async def _update_job(
         self,
         job_id: str,
@@ -290,3 +330,73 @@ class JobWorker:
             )
         except Exception as e:
             logger.warning("Failed to sync job to DB: %s", e)
+
+    async def _build_symbol_snapshot(self, project_id: str) -> Dict[str, Any]:
+        fns = await database.fetch(
+            """
+            SELECT f.name || '@' || fl.path AS key
+            FROM functions f JOIN files fl ON fl.id = f.file_id
+            WHERE fl.project_id = $1 ORDER BY 1
+            """,
+            project_id,
+        )
+        cls = await database.fetch(
+            """
+            SELECT c.name || '@' || fl.path AS key
+            FROM classes c JOIN files fl ON fl.id = c.file_id
+            WHERE fl.project_id = $1 ORDER BY 1
+            """,
+            project_id,
+        )
+        functions = [r["key"] for r in fns]
+        classes = [r["key"] for r in cls]
+        return {
+            "functions": functions,
+            "classes": classes,
+            "stats": {"functions": len(functions), "classes": len(classes)},
+        }
+
+    async def _build_changelog(
+        self,
+        llm: LLMService,
+        prev: Dict[str, Any],
+        current: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        prev_f = set(prev.get("functions") or [])
+        prev_c = set(prev.get("classes") or [])
+        cur_f = set(current.get("functions") or [])
+        cur_c = set(current.get("classes") or [])
+        added_f = sorted(cur_f - prev_f)
+        removed_f = sorted(prev_f - cur_f)
+        added_c = sorted(cur_c - prev_c)
+        removed_c = sorted(prev_c - cur_c)
+
+        briefing = ""
+        try:
+            prompt = (
+                "Write a short markdown changelog briefing (max 8 bullets) for this symbol diff. "
+                "Focus on what a developer should re-learn.\n"
+                f"Added functions: {', '.join(added_f[:30]) or '(none)'}\n"
+                f"Removed functions: {', '.join(removed_f[:30]) or '(none)'}\n"
+                f"Added classes: {', '.join(added_c[:20]) or '(none)'}\n"
+                f"Removed classes: {', '.join(removed_c[:20]) or '(none)'}"
+            )
+            briefing = await llm.answer_question(prompt, "Symbol-level re-analysis diff.")
+        except Exception as e:
+            logger.warning("Changelog briefing failed: %s", e)
+
+        return {
+            "baseline": False,
+            "added_functions": added_f,
+            "removed_functions": removed_f,
+            "added_classes": added_c,
+            "removed_classes": removed_c,
+            "stats": {
+                "added_functions": len(added_f),
+                "removed_functions": len(removed_f),
+                "added_classes": len(added_c),
+                "removed_classes": len(removed_c),
+            },
+            "briefing": briefing,
+            "message": "Diff vs previous symbol snapshot from re-analyze.",
+        }

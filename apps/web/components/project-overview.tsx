@@ -29,7 +29,8 @@ import {
   ScoreRing,
   formatBytes,
 } from "@/components/charts"
-import type { ProjectInsights, ProjectSummary } from "@/lib/api"
+import { MarkdownBody } from "@/components/markdown-body"
+import type { ProjectInsights, ProjectSummary, Readiness } from "@/lib/api"
 
 function computeScore(summary: ProjectSummary | null, insights: ProjectInsights | null) {
   let score = 5
@@ -77,6 +78,65 @@ const GITHUB_SECTIONS = [
   "pulls",
 ] as const
 
+type GithubSection = (typeof GITHUB_SECTIONS)[number]
+
+/** Survives Overview remounts (tab switches) so we do not re-hit GitHub rate limits. */
+const githubCache = new Map<string, Partial<ProjectInsights>>()
+const githubAutoFetchInflight = new Map<string, Promise<void>>()
+
+const GITHUB_FIELD_KEYS = [
+  "github",
+  "github_error",
+  "github_languages",
+  "github_languages_error",
+  "contributors",
+  "contributors_error",
+  "releases",
+  "releases_error",
+  "readme",
+  "readme_error",
+  "open_prs",
+  "open_prs_error",
+  "commits",
+  "commits_error",
+  "commit_activity",
+  "recent_authors",
+  "github_token_configured",
+] as const
+
+function pickGithubFields(source: Partial<ProjectInsights> | null | undefined): Partial<ProjectInsights> {
+  if (!source) return {}
+  const out: Partial<ProjectInsights> = {}
+  for (const key of GITHUB_FIELD_KEYS) {
+    if (source[key] !== undefined) {
+      ;(out as Record<string, unknown>)[key] = source[key]
+    }
+  }
+  return out
+}
+
+function sectionAlreadyLoaded(insights: ProjectInsights | null, section: GithubSection): boolean {
+  if (!insights) return false
+  switch (section) {
+    case "meta":
+      return insights.github !== undefined || Boolean(insights.github_error)
+    case "readme":
+      return insights.readme !== undefined || Boolean(insights.readme_error)
+    case "commits":
+      return insights.commits !== undefined || Boolean(insights.commits_error)
+    case "contributors":
+      return insights.contributors !== undefined || Boolean(insights.contributors_error)
+    case "releases":
+      return insights.releases !== undefined || Boolean(insights.releases_error)
+    case "languages":
+      return insights.github_languages !== undefined || Boolean(insights.github_languages_error)
+    case "pulls":
+      return insights.open_prs !== undefined || Boolean(insights.open_prs_error)
+    default:
+      return false
+  }
+}
+
 function mergeGithubSection(
   prev: ProjectInsights | null,
   section: string,
@@ -100,15 +160,16 @@ function mergeGithubSection(
       if (res.github) {
         next.github = res.github as ProjectInsights["github"]
         next.github_error = undefined
-      } else {
-        next.github_error = err || next.github_error
+      } else if (err && !next.github) {
+        // Keep previously loaded meta; only surface error when we have nothing to show.
+        next.github_error = err
       }
       break
     case "languages":
       if (Array.isArray(res.github_languages)) {
         next.github_languages = res.github_languages as ProjectInsights["github_languages"]
         next.github_languages_error = undefined
-      } else {
+      } else if (err && !next.github_languages?.length) {
         next.github_languages_error = err || "Failed to load GitHub languages"
       }
       break
@@ -116,7 +177,7 @@ function mergeGithubSection(
       if (Array.isArray(res.contributors)) {
         next.contributors = res.contributors as ProjectInsights["contributors"]
         next.contributors_error = undefined
-      } else {
+      } else if (err && !next.contributors?.length) {
         next.contributors_error = err || "Failed to load contributors"
       }
       break
@@ -124,24 +185,24 @@ function mergeGithubSection(
       if (Array.isArray(res.releases)) {
         next.releases = res.releases as ProjectInsights["releases"]
         next.releases_error = undefined
-      } else {
-        next.releases_error = err || next.releases_error
+      } else if (err && !next.releases?.length) {
+        next.releases_error = err
       }
       break
     case "readme":
       if (res.readme) {
         next.readme = res.readme as ProjectInsights["readme"]
         next.readme_error = undefined
-      } else {
-        next.readme_error = err || next.readme_error
+      } else if (err && !next.readme) {
+        next.readme_error = err
       }
       break
     case "pulls":
       if (typeof res.open_prs === "number") {
         next.open_prs = res.open_prs
         next.open_prs_error = undefined
-      } else {
-        next.open_prs_error = err || next.open_prs_error
+      } else if (err && next.open_prs === undefined) {
+        next.open_prs_error = err
       }
       break
     case "commits":
@@ -150,12 +211,18 @@ function mergeGithubSection(
         next.commit_activity = res.commit_activity as ProjectInsights["commit_activity"]
         next.recent_authors = res.recent_authors as ProjectInsights["recent_authors"]
         next.commits_error = undefined
-      } else {
+      } else if (err && !next.commits?.length) {
         next.commits_error = err || "Failed to load commits"
       }
       break
   }
   return next
+}
+
+function rememberGithub(projectId: string, insights: ProjectInsights | null) {
+  if (!insights) return
+  const prev = githubCache.get(projectId) || {}
+  githubCache.set(projectId, { ...prev, ...pickGithubFields(insights) })
 }
 
 export function ProjectOverview({
@@ -167,24 +234,73 @@ export function ProjectOverview({
   summary: ProjectSummary | null
   insights: ProjectInsights | null
 }) {
-  const [insights, setInsights] = useState<ProjectInsights | null>(insightsProp)
+  const [insights, setInsights] = useState<ProjectInsights | null>(() => {
+    const cached = githubCache.get(projectId)
+    if (!insightsProp && !cached) return null
+    return {
+      languages: [],
+      folders: [],
+      activity: [],
+      total_bytes: 0,
+      ...(insightsProp || {}),
+      ...pickGithubFields(cached),
+    }
+  })
   const [loadingSection, setLoadingSection] = useState<Record<string, boolean>>({})
+  const [readiness, setReadiness] = useState<Readiness | null>(null)
 
   useEffect(() => {
-    setInsights(insightsProp)
-  }, [insightsProp])
+    let alive = true
+    void api
+      .getReadiness(projectId)
+      .then((r) => {
+        if (alive) setReadiness(r)
+      })
+      .catch(() => undefined)
+    return () => {
+      alive = false
+    }
+  }, [projectId])
+
+  // Merge local analysis updates without wiping GitHub panels already loaded.
+  useEffect(() => {
+    setInsights((prev) => {
+      const cached = githubCache.get(projectId)
+      const github = {
+        ...pickGithubFields(cached),
+        ...pickGithubFields(prev),
+      }
+      if (!insightsProp && Object.keys(github).length === 0) return prev
+      const next: ProjectInsights = {
+        languages: [],
+        folders: [],
+        activity: [],
+        total_bytes: 0,
+        ...(insightsProp || {}),
+        ...github,
+      }
+      rememberGithub(projectId, next)
+      return next
+    })
+  }, [insightsProp, projectId])
 
   const refreshSection = useCallback(
     async (section: string) => {
       setLoadingSection((prev) => ({ ...prev, [section]: true }))
       try {
         const res = await api.refreshGithubSection(projectId, section)
-        setInsights((prev) => mergeGithubSection(prev, section, res))
+        setInsights((prev) => {
+          const next = mergeGithubSection(prev, section, res)
+          rememberGithub(projectId, next)
+          return next
+        })
       } catch (err) {
         const message = err instanceof Error ? err.message : "Refresh failed"
-        setInsights((prev) =>
-          mergeGithubSection(prev, section, { error: message })
-        )
+        setInsights((prev) => {
+          const next = mergeGithubSection(prev, section, { error: message })
+          rememberGithub(projectId, next)
+          return next
+        })
       } finally {
         setLoadingSection((prev) => ({ ...prev, [section]: false }))
       }
@@ -192,32 +308,80 @@ export function ProjectOverview({
     [projectId]
   )
 
-  // Load GitHub panels one-by-one so a single 403 does not burn the whole overview.
+  // Fetch each missing GitHub section once; cache + shared lock skip re-fetch on remount.
   useEffect(() => {
-    let cancelled = false
-    ;(async () => {
+    let alive = true
+
+    const apply = (section: string, res: Record<string, unknown>) => {
+      setInsights((prev) => {
+        const next = mergeGithubSection(prev, section, res)
+        rememberGithub(projectId, next)
+        return next
+      })
+    }
+
+    const run = async () => {
+      const cached = githubCache.get(projectId) || {}
+      const seed: ProjectInsights = {
+        languages: [],
+        folders: [],
+        activity: [],
+        total_bytes: 0,
+        ...pickGithubFields(cached),
+      }
+
       for (const section of GITHUB_SECTIONS) {
-        if (cancelled) break
-        setLoadingSection((prev) => ({ ...prev, [section]: true }))
+        if (sectionAlreadyLoaded(seed, section)) continue
+
+        if (alive) setLoadingSection((prev) => ({ ...prev, [section]: true }))
         try {
           const res = await api.refreshGithubSection(projectId, section)
-          if (cancelled) break
-          setInsights((prev) => mergeGithubSection(prev, section, res))
+          const merged = mergeGithubSection(seed, section, res)
+          Object.assign(seed, pickGithubFields(merged))
+          rememberGithub(projectId, merged)
+          if (alive) apply(section, res)
         } catch (err) {
-          if (cancelled) break
           const message = err instanceof Error ? err.message : "Refresh failed"
-          setInsights((prev) => mergeGithubSection(prev, section, { error: message }))
+          const res = { error: message }
+          const merged = mergeGithubSection(seed, section, res)
+          Object.assign(seed, pickGithubFields(merged))
+          rememberGithub(projectId, merged)
+          if (alive) apply(section, res)
         } finally {
-          if (!cancelled) {
-            setLoadingSection((prev) => ({ ...prev, [section]: false }))
-          }
+          if (alive) setLoadingSection((prev) => ({ ...prev, [section]: false }))
         }
-        // Small pause between calls to reduce secondary rate-limit risk
-        await new Promise((r) => setTimeout(r, 350))
+        await new Promise((r) => setTimeout(r, 250))
       }
-    })()
+    }
+
+    const existing = githubAutoFetchInflight.get(projectId)
+    const promise =
+      existing ??
+      run().finally(() => {
+        githubAutoFetchInflight.delete(projectId)
+      })
+    if (!existing) githubAutoFetchInflight.set(projectId, promise)
+
+    // If a fetch was already in flight / done, hydrate UI from cache when we remount.
+    void promise.then(() => {
+      if (!alive) return
+      const cached = githubCache.get(projectId)
+      if (!cached) return
+      setInsights((prev) => {
+        const next: ProjectInsights = {
+          languages: [],
+          folders: [],
+          activity: [],
+          total_bytes: 0,
+          ...(prev || {}),
+          ...pickGithubFields(cached),
+        }
+        return next
+      })
+    })
+
     return () => {
-      cancelled = true
+      alive = false
     }
   }, [projectId])
 
@@ -278,12 +442,20 @@ export function ProjectOverview({
 
   const commits = insights?.commits || []
   const github = insights?.github
-  const score = computeScore(summary, insights)
-  const readiness = scoreLabel(score)
+  const score = readiness?.score ?? computeScore(summary, insights)
+  const readinessLabel = readiness
+    ? {
+        label: readiness.label,
+        detail:
+          readiness.detail ||
+          `${Math.round(readiness.coverage_pct)}% embedding coverage · ${readiness.embedding_count} embeddings`,
+      }
+    : scoreLabel(score)
   const totalBytes = insights?.total_bytes || 0
-  const fileCount = insights?.total_files ?? summary?.file_count ?? 0
-  const functionCount = insights?.function_count ?? summary?.function_count ?? 0
-  const classCount = insights?.class_count ?? summary?.class_count ?? 0
+  const fileCount = readiness?.file_count ?? insights?.total_files ?? summary?.file_count ?? 0
+  const functionCount =
+    readiness?.function_count ?? insights?.function_count ?? summary?.function_count ?? 0
+  const classCount = readiness?.class_count ?? insights?.class_count ?? summary?.class_count ?? 0
   const maxContributor = Math.max(...(insights?.contributors || []).map((c) => c.contributions), 1)
 
   return (
@@ -293,18 +465,39 @@ export function ProjectOverview({
         <SectionLabel step="01" title="At a glance" desc="Readiness and repository identity" />
         <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="rounded-2xl border bg-card p-5">
-            <ScoreRing score={score} label={readiness.label} detail={readiness.detail} />
+            <ScoreRing score={score} label={readinessLabel.label} detail={readinessLabel.detail} />
             <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <Metric icon={FileCode2} label="Files" value={fileCount} />
               <Metric icon={GitBranch} label="Functions" value={functionCount} />
               <Metric icon={BookOpen} label="Classes" value={classCount} />
-              <Metric icon={Layers} label="Embeddings" value={insights?.embedding_count ?? 0} />
+              <Metric
+                icon={Layers}
+                label="Embeddings"
+                value={readiness?.embedding_count ?? insights?.embedding_count ?? 0}
+              />
             </div>
             <div className="mt-4 grid gap-2 sm:grid-cols-3">
-              <ArtifactPill ready={!!insights?.artifacts?.overview} label="AI overview" />
-              <ArtifactPill ready={!!insights?.artifacts?.diagram} label="Diagram" />
-              <ArtifactPill ready={!!insights?.artifacts?.docs} label="Docs" />
+              <ArtifactPill
+                ready={readiness?.has_overview ?? !!insights?.artifacts?.overview}
+                label="AI overview"
+              />
+              <ArtifactPill
+                ready={readiness?.has_diagram ?? !!insights?.artifacts?.diagram}
+                label="Diagram"
+              />
+              <ArtifactPill
+                ready={readiness?.has_docs ?? !!insights?.artifacts?.docs}
+                label="Docs"
+              />
             </div>
+            {readiness && (
+              <p className="mt-3 text-xs text-muted-foreground">
+                Index coverage {Math.round(readiness.coverage_pct)}%
+                {(readiness.dead_end_files?.length || 0) > 0
+                  ? ` · ${readiness.dead_end_files!.length} dead-end files`
+                  : ""}
+              </p>
+            )}
           </div>
 
           <div className="rounded-2xl border bg-gradient-to-br from-teal-950 via-zinc-900 to-zinc-950 p-5 text-zinc-50">
@@ -438,10 +631,14 @@ export function ProjectOverview({
                     "radial-gradient(circle, oklch(0.7 0.12 180 / 0.5), transparent 70%)",
                 }}
               />
-              <div className="relative max-h-[360px] overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-                {summary?.overview ||
-                  summary?.summary ||
-                  "Run analysis to generate an AI overview of architecture, entry points, and purpose."}
+              <div className="relative">
+                {summary?.overview || summary?.summary ? (
+                  <MarkdownBody content={summary.overview || summary.summary || ""} />
+                ) : (
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    Run analysis to generate an AI overview of architecture, entry points, and purpose.
+                  </p>
+                )}
               </div>
             </div>
             <div className="mt-3 flex flex-wrap gap-3 text-xs text-muted-foreground">
@@ -481,9 +678,9 @@ export function ProjectOverview({
                     </a>
                   )}
                 </div>
-                <pre className="max-h-[360px] overflow-auto whitespace-pre-wrap rounded-xl border bg-muted/30 p-3 font-sans text-xs leading-relaxed text-muted-foreground">
-                  {insights.readme.excerpt}
-                </pre>
+                <div className="rounded-xl border bg-muted/30 p-3">
+                  <MarkdownBody content={insights.readme.excerpt} />
+                </div>
               </div>
             ) : insights?.readme_error ? (
               <GithubError

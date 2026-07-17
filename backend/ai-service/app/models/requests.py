@@ -21,10 +21,34 @@ class SummarizeCodeRequest(BaseModel):
     context: Optional[str] = Field(default=None, description="Optional extra context")
 
 
+class AskCodeSelection(BaseModel):
+    path: str = ""
+    code: str = Field(..., min_length=1)
+    language: Optional[str] = None
+    start_line: Optional[int] = None
+    end_line: Optional[int] = None
+
+
 class AskQuestionRequest(BaseModel):
     project_id: str = Field(..., description="Project UUID to search within")
     question: str = Field(..., min_length=1, description="Natural language question")
     limit: int = Field(default=5, ge=1, le=20, description="Max code snippets to retrieve")
+    selection: Optional[AskCodeSelection] = Field(
+        default=None,
+        description="Optional selected code from the file viewer",
+    )
+    lens: Optional[str] = Field(
+        default=None,
+        description="Optional perspective lens: security, reviewer, beginner, performance, architect",
+    )
+    files: Optional[List[AskCodeSelection]] = Field(
+        default=None,
+        description="Optional multi-file basket for comparative explain",
+    )
+    lens: Optional[str] = Field(
+        default=None,
+        description="Role lens: security|reviewer|beginner|performance|architect",
+    )
 
 
 class SearchCodeRequest(BaseModel):

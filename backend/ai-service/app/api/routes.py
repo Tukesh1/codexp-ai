@@ -112,6 +112,64 @@ async def ask_question(
 
         sources: List[Dict[str, Any]] = []
         context_bits: List[str] = []
+
+        if request.selection and request.selection.code.strip():
+            sel = request.selection
+            loc = sel.path or "selection"
+            if sel.start_line:
+                if sel.end_line and sel.end_line != sel.start_line:
+                    loc = f"{loc}:{sel.start_line}-{sel.end_line}"
+                else:
+                    loc = f"{loc}:{sel.start_line}"
+            lang = sel.language or ""
+            fence = lang if lang else ""
+            # Cap very large selections so the prompt stays focused.
+            code = sel.code
+            if len(code) > 12000:
+                code = code[:12000] + "\n… [truncated]"
+            context_bits.append(
+                f"SELECTED CODE from `{loc}` — explain this selection primarily:\n"
+                f"```{fence}\n{code}\n```"
+            )
+            sources.append(
+                {
+                    "content_type": "selection",
+                    "name": loc,
+                    "path": sel.path,
+                    "start_line": sel.start_line,
+                    "end_line": sel.end_line,
+                    "similarity": 1.0,
+                }
+            )
+
+        if request.files:
+            for i, fsel in enumerate(request.files[:6]):
+                if not fsel.code or not fsel.code.strip():
+                    continue
+                loc = fsel.path or f"file-{i+1}"
+                if fsel.start_line:
+                    if fsel.end_line and fsel.end_line != fsel.start_line:
+                        loc = f"{loc}:{fsel.start_line}-{fsel.end_line}"
+                    else:
+                        loc = f"{loc}:{fsel.start_line}"
+                code = fsel.code
+                if len(code) > 8000:
+                    code = code[:8000] + "\n… [truncated]"
+                fence = fsel.language or ""
+                context_bits.append(
+                    f"FILE CONTEXT `{loc}`:\n```{fence}\n{code}\n```"
+                )
+                sources.append(
+                    {
+                        "content_type": "file_basket",
+                        "name": loc,
+                        "path": fsel.path,
+                        "start_line": fsel.start_line,
+                        "end_line": fsel.end_line,
+                        "similarity": 0.95,
+                    }
+                )
+
         for item in similar:
             content_type = item["content_type"]
             content_id = item["content_id"]
@@ -157,7 +215,11 @@ async def ask_question(
             context_bits.append(await build_project_context(request.project_id, max_symbols=40))
 
         llm = LLMService(creds["api_key"], creds["model"], creds.get("provider", "openai"))
-        answer = await llm.answer_question(request.question, "\n".join(context_bits))
+        answer = await llm.answer_question(
+            request.question,
+            "\n".join(context_bits),
+            lens=request.lens,
+        )
 
         return AskQuestionResponse(
             success=True,

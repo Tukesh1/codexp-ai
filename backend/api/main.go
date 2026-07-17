@@ -46,6 +46,7 @@ func main() {
 	authHandler := handlers.NewAuthHandler(authService)
 	settingsHandler := handlers.NewSettingsHandler(settingsService)
 	projectHandler := handlers.NewProjectHandler(projectService, githubService, jobService, settingsService)
+	intelligenceHandler := handlers.NewIntelligenceHandler(projectService)
 	healthHandler := handlers.NewHealthHandler(db, redis)
 
 	// Setup Gin router
@@ -125,6 +126,24 @@ func main() {
 				analysis.GET("/diagram", projectHandler.GetDependencyDiagram)
 				analysis.GET("/docs", projectHandler.GetGeneratedDocs)
 				analysis.POST("/docs", projectHandler.GenerateDocs)
+
+				// Intelligence features
+				analysis.GET("/readiness", intelligenceHandler.GetReadiness)
+				analysis.GET("/concepts", intelligenceHandler.GetConcepts)
+				analysis.GET("/dead-ends", intelligenceHandler.GetDeadEnds)
+				analysis.GET("/changes", intelligenceHandler.GetChanges)
+				analysis.GET("/graph", intelligenceHandler.GetSymbolGraph)
+
+				// Notes
+				analysis.GET("/notes", intelligenceHandler.ListNotes)
+				analysis.POST("/notes", intelligenceHandler.CreateNote)
+				analysis.PUT("/notes/:noteId", intelligenceHandler.UpdateNote)
+				analysis.DELETE("/notes/:noteId", intelligenceHandler.DeleteNote)
+
+				// Quiz
+				analysis.POST("/quiz/generate", intelligenceHandler.GenerateQuiz)
+				analysis.POST("/quiz/:attemptId/submit", intelligenceHandler.SubmitQuiz)
+				analysis.GET("/quiz/latest", intelligenceHandler.GetLatestQuiz)
 			}
 		}
 	}

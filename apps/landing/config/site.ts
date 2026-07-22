@@ -1,23 +1,23 @@
 /** Site config for Codexp landing. */
 
 export const SiteMetadata = {
-  title: "Codexp AI — Understand any codebase",
+  title: "Codexp",
   description:
-    "Connect a GitHub repo. Get overviews, diagrams, select-to-explain, Explore tools, and Ask — powered by your own API keys.",
-  authors: [{ name: "Codexp AI" }],
+    "Connect a GitHub repo. Get overviews, diagrams, select-to-explain, and Ask with your own API keys.",
+  authors: [{ name: "Codexp" }],
   keywords: [
-    "Codexp AI",
+    "Codexp",
     "codebase understanding",
     "AI documentation",
     "repository analysis",
     "developer tools",
   ],
   openGraph: {
-    title: "Codexp AI — Understand any codebase",
+    title: "Codexp",
     description:
-      "Connect a GitHub repo. Get overviews, diagrams, select-to-explain, Explore tools, and Ask — powered by your own API keys.",
+      "Connect a GitHub repo. Get overviews, diagrams, select-to-explain, and Ask with your own API keys.",
     url: "https://github.com/Tukesh1/codexp-ai",
-    siteName: "Codexp AI",
+    siteName: "Codexp",
     images: [
       {
         url: "/images/logo.png",

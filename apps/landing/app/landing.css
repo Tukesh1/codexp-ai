@@ -1,4 +1,4 @@
-/* Landing — black & white (scoped so we don't clash with UI kit tokens) */
+/* Landing: black and white (scoped so we don't clash with UI kit tokens) */
 
 html {
   font-size: 18px; /* bump rem scale for the whole landing app */

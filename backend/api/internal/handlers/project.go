@@ -271,7 +271,7 @@ func (h *ProjectHandler) AskQuestion(c *gin.Context) {
 		return
 	}
 
-	resp, err := h.projectService.AskQuestion(userUUID, projectID, req.Question)
+	resp, err := h.projectService.AskQuestion(userUUID, projectID, &req)
 	if err != nil {
 		status := http.StatusInternalServerError
 		if strings.Contains(err.Error(), "api key") {

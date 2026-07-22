@@ -28,7 +28,7 @@ function parseGitHubRepo(input: string): { owner: string; repo: string; url: str
   }
 }
 
-export function RepoCta({ compact = false }: { compact?: boolean }) {
+export function RepoCta() {
   const [repoInput, setRepoInput] = useState("")
   const parsed = useMemo(() => parseGitHubRepo(repoInput), [repoInput])
 
@@ -40,51 +40,43 @@ export function RepoCta({ compact = false }: { compact?: boolean }) {
   }
 
   return (
-    <form
-      onSubmit={onSubmit}
-      className={`border border-[var(--line)] bg-[var(--bg-elevated)] ${
-        compact ? "p-4" : "p-5"
-      }`}
-    >
+    <form onSubmit={onSubmit}>
       <label
-        className="block font-[family-name:var(--font-mono)] text-xs uppercase tracking-[0.18em] text-[var(--fg-muted)]"
+        className="mb-2 block font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-[0.2em] text-[var(--fg-muted)]"
         htmlFor="landing-repo"
       >
         GitHub repository
       </label>
-      <div className="mt-2.5 flex flex-col gap-2 sm:flex-row">
+
+      <div className="flex h-12 items-stretch border border-[var(--line)] bg-[var(--bg-elevated)] focus-within:border-[var(--fg)]">
         <input
           id="landing-repo"
           value={repoInput}
           onChange={(e) => setRepoInput(e.target.value)}
-          placeholder="owner/repo or github.com/…"
+          placeholder="owner/repo"
           autoComplete="off"
           spellCheck={false}
-          className="h-12 flex-1 border border-[var(--line)] bg-[var(--bg)] px-3 font-[family-name:var(--font-mono)] text-base text-[var(--fg)] placeholder:text-[var(--fg-muted)]/50 outline-none transition focus:border-[var(--fg)]"
+          className="min-w-0 flex-1 bg-transparent px-3.5 font-[family-name:var(--font-mono)] text-sm text-[var(--fg)] placeholder:text-[var(--fg-muted)]/45 outline-none"
         />
         <button
           type="submit"
           disabled={!parsed}
-          className="inline-flex h-12 items-center justify-center gap-2 bg-[var(--fg)] px-5 text-base font-semibold text-[var(--inverse)] transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-30"
+          className="inline-flex shrink-0 items-center gap-1.5 border-l border-[var(--line)] bg-[var(--fg)] px-4 text-sm font-semibold text-[var(--inverse)] transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-25"
         >
           Analyze
-          <ArrowRight className="size-4" />
+          <ArrowRight className="size-3.5" />
         </button>
       </div>
 
       {parsed ? (
-        <p className="mt-2.5 font-[family-name:var(--font-mono)] text-sm text-[var(--fg-muted)]">
+        <p className="mt-2 font-[family-name:var(--font-mono)] text-xs text-[var(--fg-muted)]">
           <span className="text-[var(--fg)]">{parsed.repo}</span>
           <span className="mx-1.5 opacity-30">·</span>
           {parsed.owner}/{parsed.repo}
         </p>
-      ) : repoInput.trim() ? (
-        <p className="mt-2.5 font-[family-name:var(--font-mono)] text-sm text-[var(--fg-muted)]">
-          Waiting for a valid URL…
-        </p>
       ) : (
-        <p className="mt-2.5 font-[family-name:var(--font-mono)] text-sm text-[var(--fg-muted)]">
-          e.g. pytorch/pytorch
+        <p className="mt-2 font-[family-name:var(--font-mono)] text-xs text-[var(--fg-muted)]">
+          {repoInput.trim() ? "Waiting for a valid URL" : "e.g. pytorch/pytorch"}
         </p>
       )}
     </form>

@@ -28,9 +28,15 @@ export const SiteMetadata = {
   },
 }
 
-/** Web app base URL (dashboard / login). */
-export const APP_URL = (
-  process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
-).replace(/\/$/, "")
+/**
+ * Web app base URL (dashboard / login).
+ * Access env as a full static path so Next can inline it into client bundles.
+ */
+export function getAppUrl(): string {
+  return (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(
+    /\/$/,
+    ""
+  )
+}
 
 export const GITHUB_URL = "https://github.com/Tukesh1/codexp-ai"

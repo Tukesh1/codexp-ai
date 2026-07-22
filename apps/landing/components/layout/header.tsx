@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { Menu, X } from "lucide-react"
-import { APP_URL, GITHUB_URL } from "@/config/site"
+import { getAppUrl, GITHUB_URL } from "@/config/site"
 
 const nav = [
   { href: "#tour", label: "Product" },
@@ -40,12 +40,12 @@ export function Header() {
           >
             GitHub
           </Link>
-          <Link
-            href={`${APP_URL}/login`}
+          <a
+            href={`${getAppUrl()}/login`}
             className="bg-[var(--fg)] px-4 py-2.5 text-base font-medium text-[var(--inverse)] transition hover:opacity-85"
           >
             Open app
-          </Link>
+          </a>
         </div>
 
         <button
@@ -74,12 +74,12 @@ export function Header() {
             <Link href={GITHUB_URL} className="text-[var(--fg-muted)]">
               GitHub
             </Link>
-            <Link
-              href={`${APP_URL}/login`}
+            <a
+              href={`${getAppUrl()}/login`}
               className="mt-2 bg-[var(--fg)] px-4 py-3 text-center text-sm font-medium text-[var(--inverse)]"
             >
               Open app
-            </Link>
+            </a>
           </nav>
         </div>
       )}

@@ -4,14 +4,15 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth"
+import { getApiUrl } from "@/lib/api"
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
 
 export default function LoginPage() {
   const { login, user, loading } = useAuth()
   const router = useRouter()
-  const [email, setEmail] = useState("dev@codeexp.ai")
-  const [name, setName] = useState("Developer")
+  const [email, setEmail] = useState("")
+  const [name, setName] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -24,14 +25,23 @@ export default function LoginPage() {
     setSubmitting(true)
     setError(null)
     try {
-      await login(email, name)
+      await login(email.trim(), name.trim() || undefined)
       router.push("/dashboard")
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed")
+      const msg = err instanceof Error ? err.message : "Sign in failed"
+      if (msg === "Failed to fetch" || msg.includes("NetworkError")) {
+        setError(
+          "Can't reach the API. Check that NEXT_PUBLIC_API_URL points to your backend and CORS allows this site."
+        )
+      } else {
+        setError(msg)
+      }
     } finally {
       setSubmitting(false)
     }
   }
+
+  const landingUrl = (process.env.NEXT_PUBLIC_LANDING_URL || "/").replace(/\/$/, "")
 
   return (
     <div className="flex min-h-svh items-center justify-center bg-background p-6">
@@ -40,9 +50,9 @@ export default function LoginPage() {
           <div className="mx-auto flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground text-lg font-bold">
             CE
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight">Sign in to CodeExp AI</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Sign in to Codexp</h1>
           <p className="text-sm text-muted-foreground">
-            Dev login for local development. Connect Clerk in production.
+            Enter your email to sign in or create an account.
           </p>
         </div>
 
@@ -56,34 +66,45 @@ export default function LoginPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@company.com"
+              autoComplete="email"
               required
             />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="name">
-              Name
+              Name <span className="font-normal text-muted-foreground">(for new accounts)</span>
             </label>
-            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Your name"
+              autoComplete="name"
+            />
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" className="w-full" disabled={submitting}>
-            {submitting ? "Signing in…" : "Continue"}
+          <Button type="submit" className="w-full" disabled={submitting || !email.trim()}>
+            {submitting ? "Continuing…" : "Continue"}
           </Button>
+          <p className="text-center text-xs text-muted-foreground">
+            New here? We’ll create your account automatically on first sign-in.
+          </p>
         </form>
 
-        <p className="text-center text-xs text-muted-foreground">
-          API must be running at{" "}
-          <code className="rounded bg-muted px-1 py-0.5">
-            {process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}
-          </code>
-          .{" "}
-          <Link
-            href={(process.env.NEXT_PUBLIC_LANDING_URL || "http://localhost:3002").replace(/\/$/, "")}
-            className="underline"
-          >
-            Back to landing
-          </Link>
-        </p>
+        {landingUrl !== "/" ? (
+          <p className="text-center text-xs text-muted-foreground">
+            <Link href={landingUrl} className="underline underline-offset-2 hover:text-foreground">
+              Back to landing
+            </Link>
+          </p>
+        ) : null}
+
+        {process.env.NODE_ENV === "development" ? (
+          <p className="text-center text-[10px] text-muted-foreground/70">
+            API: {getApiUrl()}
+          </p>
+        ) : null}
       </div>
     </div>
   )

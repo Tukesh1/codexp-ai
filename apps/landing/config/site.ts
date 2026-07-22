@@ -1,5 +1,8 @@
 /** Site config for Codexp landing. */
 
+/** Production defaults when env vars are missing on Vercel builds. */
+const PROD_WEB_URL = "https://codexp-ai-web.vercel.app"
+
 export const SiteMetadata = {
   title: "Codexp",
   description:
@@ -33,10 +36,12 @@ export const SiteMetadata = {
  * Access env as a full static path so Next can inline it into client bundles.
  */
 export function getAppUrl(): string {
-  return (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(
-    /\/$/,
-    ""
-  )
+  const fromEnv = process.env.NEXT_PUBLIC_APP_URL
+  if (fromEnv) return fromEnv.replace(/\/$/, "")
+  if (process.env.VERCEL || process.env.NODE_ENV === "production") {
+    return PROD_WEB_URL
+  }
+  return "http://localhost:3000"
 }
 
 export const GITHUB_URL = "https://github.com/Tukesh1/codexp-ai"

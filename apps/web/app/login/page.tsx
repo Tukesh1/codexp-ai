@@ -41,7 +41,9 @@ export default function LoginPage() {
     }
   }
 
-  const landingUrl = (process.env.NEXT_PUBLIC_LANDING_URL || "/").replace(/\/$/, "")
+  const landingUrl = (
+    process.env.NEXT_PUBLIC_LANDING_URL || "https://codexp-ai-landing.vercel.app"
+  ).replace(/\/$/, "")
 
   return (
     <div className="flex min-h-svh items-center justify-center bg-background p-6">
@@ -92,13 +94,11 @@ export default function LoginPage() {
           </p>
         </form>
 
-        {landingUrl !== "/" ? (
-          <p className="text-center text-xs text-muted-foreground">
-            <Link href={landingUrl} className="underline underline-offset-2 hover:text-foreground">
-              Back to landing
-            </Link>
-          </p>
-        ) : null}
+        <p className="text-center text-xs text-muted-foreground">
+          <Link href={landingUrl} className="underline underline-offset-2 hover:text-foreground">
+            Back to landing
+          </Link>
+        </p>
 
         {process.env.NODE_ENV === "development" ? (
           <p className="text-center text-[10px] text-muted-foreground/70">

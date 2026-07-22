@@ -77,7 +77,10 @@ export default function LoginPage() {
             {process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}
           </code>
           .{" "}
-          <Link href="http://localhost:3002" className="underline">
+          <Link
+            href={(process.env.NEXT_PUBLIC_LANDING_URL || "http://localhost:3002").replace(/\/$/, "")}
+            className="underline"
+          >
             Back to landing
           </Link>
         </p>

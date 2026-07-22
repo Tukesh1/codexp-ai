@@ -26,13 +26,13 @@ const DEMOS: Array<{
     id: "code",
     label: "Code",
     title: "Select → explain",
-    blurb: "Highlight a slice, pick a lens, ask — answers stay grounded.",
+    blurb: "Highlight a slice, pick a lens, ask. Answers stay grounded.",
   },
   {
     id: "diagram",
     label: "Diagram",
     title: "Architecture map",
-    blurb: "Symbol graph from the index — modules, edges, entry points.",
+    blurb: "Symbol graph from the index: modules, edges, entry points.",
   },
 ]
 
@@ -233,7 +233,7 @@ function CodeDemo() {
             architect lens
           </p>
           <p className="mt-1.5 text-sm leading-relaxed text-[var(--fg)]">
-            Selection scopes the prompt — Ask never sees the whole file unless you send it.
+            Selection scopes the prompt. Ask never sees the whole file unless you send it.
             <span className="landing-cursor text-[var(--fg)]">{"▌"}</span>
           </p>
         </div>

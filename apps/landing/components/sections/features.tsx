@@ -70,7 +70,7 @@ export function Features() {
                 What you actually get
               </h2>
               <p className="mt-3 text-lg text-[var(--fg-muted)]">
-                No placeholder dashboards — these ship in the product today.
+                No placeholder dashboards. These ship in the product today.
               </p>
             </div>
             <ul className="divide-y divide-[var(--line)] border-y border-[var(--line)]">

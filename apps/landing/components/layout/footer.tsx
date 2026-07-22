@@ -10,7 +10,7 @@ export function Footer() {
             Codexp
           </p>
           <p className="mt-2 max-w-sm text-base text-[var(--fg-muted)]">
-            Codebase understanding for developers who inherit repos they didn’t write.
+            Codebase understanding for developers who inherit repos they did not write.
           </p>
         </div>
         <nav className="flex flex-wrap gap-x-7 gap-y-2 text-base text-[var(--fg-muted)]">
@@ -30,7 +30,7 @@ export function Footer() {
       </div>
       <div className="border-t border-[var(--line)]">
         <p className="mx-auto max-w-6xl px-4 py-4 font-[family-name:var(--font-mono)] text-[11px] text-[var(--fg-muted)] md:px-6">
-          © {new Date().getFullYear()} Codexp AI
+          © {new Date().getFullYear()} Codexp
         </p>
       </div>
     </footer>

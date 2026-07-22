@@ -14,7 +14,7 @@ export function CTA() {
           Paste a repo. Highlight a line. Know what it does.
         </h2>
         <p className="mt-4 max-w-md text-lg text-[var(--fg-muted)]">
-          Same flow as New Project — drop a GitHub URL and jump straight into Codexp.
+          Same flow as New Project. Drop a GitHub URL and jump straight into Codexp.
         </p>
         <div className="mt-10 max-w-xl">
           <RepoCta />

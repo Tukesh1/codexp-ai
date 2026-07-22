@@ -20,7 +20,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${fontDisplay.variable} ${fontMono.variable} font-[family-name:var(--font-display)] antialiased bg-[#050505] text-[#f5f5f5]`}
+        className={`${fontDisplay.variable} ${fontMono.variable} font-[family-name:var(--font-display)] antialiased bg-[#050505] text-[#f5f5f5] font-normal`}
       >
         <Providers>{children}</Providers>
       </body>

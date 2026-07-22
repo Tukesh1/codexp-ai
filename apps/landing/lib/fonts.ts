@@ -1,9 +1,9 @@
-import { IBM_Plex_Mono, Syne } from "next/font/google"
+import { IBM_Plex_Mono, Space_Grotesk } from "next/font/google"
 
-export const fontDisplay = Syne({
+export const fontDisplay = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-display",
-  weight: ["500", "600", "700", "800"],
+  weight: ["400", "500", "600", "700"],
 })
 
 export const fontMono = IBM_Plex_Mono({

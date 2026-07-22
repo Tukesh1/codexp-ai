@@ -118,6 +118,8 @@ func main() {
 		// Auth routes
 		auth := api.Group("/auth")
 		{
+			auth.POST("/signup", authHandler.Signup)
+			auth.POST("/login", authHandler.Login)
 			auth.POST("/dev-login", authHandler.DevLogin)
 			auth.POST("/webhook", authHandler.ClerkWebhook)
 			auth.GET("/me", middleware.AuthMiddleware(authService), authHandler.GetMe)

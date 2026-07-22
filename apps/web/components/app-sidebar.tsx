@@ -83,8 +83,14 @@ export function AppSidebar() {
       <SidebarFooter className="border-t border-sidebar-border p-3">
         <div className="flex items-center justify-between gap-2 group-data-[collapsible=icon]:flex-col">
           <div className="min-w-0 group-data-[collapsible=icon]:hidden">
-            <p className="truncate text-sm font-medium">{user?.email || "Guest"}</p>
-            <p className="text-xs text-muted-foreground capitalize">{user?.plan || "free"} plan</p>
+            <p className="truncate text-sm font-medium">
+              {user?.display_name || user?.email || "Guest"}
+            </p>
+            <p className="truncate text-xs text-muted-foreground">
+              {user?.display_name ? user.email : null}
+              {user?.display_name ? " · " : null}
+              <span className="capitalize">{user?.plan || "free"} plan</span>
+            </p>
           </div>
           <Button
             variant="ghost"

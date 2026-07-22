@@ -10,6 +10,7 @@ export type User = {
   id: string
   clerk_id: string
   email: string
+  display_name?: string
   plan: string
   ai_provider?: string
   ai_model?: string
@@ -294,6 +295,20 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
+  async signup(email: string, password: string, name?: string) {
+    return request<{ token: string; user: User }>("/api/v1/auth/signup", {
+      method: "POST",
+      body: JSON.stringify({ email, password, name }),
+    })
+  },
+
+  async login(email: string, password: string) {
+    return request<{ token: string; user: User }>("/api/v1/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    })
+  },
+
   async devLogin(email: string, name?: string) {
     return request<{ token: string; user: User }>("/api/v1/auth/dev-login", {
       method: "POST",

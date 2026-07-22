@@ -10,6 +10,7 @@ import (
 	"github.com/Tukesh1/codexp-ai/backend/api/internal/models"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthService struct {
@@ -37,7 +38,7 @@ func (s *AuthService) GenerateToken(userID, clerkID string) (string, error) {
 		UserID:  userID,
 		ClerkID: clerkID,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(30 * 24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
 		},
@@ -64,7 +65,6 @@ func (s *AuthService) ValidateToken(tokenString string) (string, error) {
 }
 
 func (s *AuthService) ValidateClerkWebhook(payload []byte, signature string) error {
-	// Production: validate Svix signature with clerkSecretKey
 	_ = payload
 	_ = signature
 	return nil
@@ -84,8 +84,126 @@ func (s *AuthService) UpsertUserFromClerk(clerkID, email string) (*models.User, 
 	return user, nil
 }
 
+func (s *AuthService) issueAuth(user *models.User) (*models.AuthResponse, error) {
+	user, err := s.GetUser(user.ID)
+	if err != nil {
+		return nil, err
+	}
+	token, err := s.GenerateToken(user.ID.String(), user.ClerkID)
+	if err != nil {
+		return nil, err
+	}
+	return &models.AuthResponse{Token: token, User: *user}, nil
+}
+
+func normalizeEmail(email string) string {
+	return strings.TrimSpace(strings.ToLower(email))
+}
+
+func localClerkID(email string) string {
+	return "local_" + strings.ReplaceAll(email, "@", "_at_")
+}
+
+func hashPassword(password string) (string, error) {
+	b, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
+func (s *AuthService) Signup(email, password, name string) (*models.AuthResponse, error) {
+	email = normalizeEmail(email)
+	name = strings.TrimSpace(name)
+	if email == "" {
+		return nil, fmt.Errorf("email is required")
+	}
+	if len(password) < 8 {
+		return nil, fmt.Errorf("password must be at least 8 characters")
+	}
+
+	hash, err := hashPassword(password)
+	if err != nil {
+		return nil, fmt.Errorf("failed to hash password")
+	}
+
+	clerkID := localClerkID(email)
+
+	var existingID uuid.UUID
+	var existingHash sql.NullString
+	err = s.db.QueryRow(`SELECT id, password_hash FROM users WHERE email = $1`, email).Scan(&existingID, &existingHash)
+	if err == nil {
+		if existingHash.Valid && strings.TrimSpace(existingHash.String) != "" {
+			return nil, fmt.Errorf("an account with this email already exists — sign in instead")
+		}
+		// Legacy email-only account: set password and continue
+		_, err = s.db.Exec(`
+			UPDATE users
+			SET password_hash = $1,
+			    display_name = COALESCE(NULLIF($2, ''), display_name),
+			    updated_at = CURRENT_TIMESTAMP
+			WHERE id = $3
+		`, hash, name, existingID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to update account: %w", err)
+		}
+		user, err := s.GetUser(existingID)
+		if err != nil {
+			return nil, err
+		}
+		return s.issueAuth(user)
+	}
+	if err != sql.ErrNoRows {
+		return nil, fmt.Errorf("failed to check email: %w", err)
+	}
+
+	user := &models.User{}
+	err = s.db.QueryRow(`
+		INSERT INTO users (clerk_id, email, plan, password_hash, display_name)
+		VALUES ($1, $2, 'free', $3, NULLIF($4, ''))
+		RETURNING id, clerk_id, email, plan, created_at, updated_at
+	`, clerkID, email, hash, name).Scan(&user.ID, &user.ClerkID, &user.Email, &user.Plan, &user.CreatedAt, &user.UpdatedAt)
+	if err != nil {
+		if strings.Contains(err.Error(), "duplicate") || strings.Contains(err.Error(), "unique") {
+			return nil, fmt.Errorf("an account with this email already exists — sign in instead")
+		}
+		return nil, fmt.Errorf("failed to create account: %w", err)
+	}
+	user.DisplayName = name
+	return s.issueAuth(user)
+}
+
+func (s *AuthService) Login(email, password string) (*models.AuthResponse, error) {
+	email = normalizeEmail(email)
+	if email == "" || password == "" {
+		return nil, fmt.Errorf("email and password are required")
+	}
+
+	var id uuid.UUID
+	var hash sql.NullString
+	err := s.db.QueryRow(`SELECT id, password_hash FROM users WHERE email = $1`, email).Scan(&id, &hash)
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("invalid email or password")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to look up user: %w", err)
+	}
+	if !hash.Valid || strings.TrimSpace(hash.String) == "" {
+		return nil, fmt.Errorf("this account has no password yet — use Sign up to set one")
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(hash.String), []byte(password)); err != nil {
+		return nil, fmt.Errorf("invalid email or password")
+	}
+
+	user, err := s.GetUser(id)
+	if err != nil {
+		return nil, err
+	}
+	return s.issueAuth(user)
+}
+
 func (s *AuthService) DevLogin(email, name string) (*models.DevLoginResponse, error) {
-	email = strings.TrimSpace(strings.ToLower(email))
+	email = normalizeEmail(email)
 	if email == "" {
 		return nil, fmt.Errorf("email is required")
 	}
@@ -96,7 +214,10 @@ func (s *AuthService) DevLogin(email, name string) (*models.DevLoginResponse, er
 		return nil, err
 	}
 
-	// Reload for HasAPIKey / AIModel fields
+	if name = strings.TrimSpace(name); name != "" {
+		_, _ = s.db.Exec(`UPDATE users SET display_name = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`, name, user.ID)
+	}
+
 	user, err = s.GetUser(user.ID)
 	if err != nil {
 		return nil, err
@@ -107,24 +228,25 @@ func (s *AuthService) DevLogin(email, name string) (*models.DevLoginResponse, er
 		return nil, err
 	}
 
-	_ = name
 	return &models.DevLoginResponse{Token: token, User: *user}, nil
 }
 
 func (s *AuthService) GetUser(userID uuid.UUID) (*models.User, error) {
 	user := &models.User{}
 	var openaiKey, geminiKey sql.NullString
-	var aiModel, provider sql.NullString
+	var aiModel, provider, displayName sql.NullString
 	err := s.db.QueryRow(`
 		SELECT id, clerk_id, email, plan,
 			COALESCE(ai_provider, 'openai'),
 			COALESCE(ai_model, 'gpt-4o-mini'),
 			openai_api_key, gemini_api_key,
+			display_name,
 			created_at, updated_at
 		FROM users WHERE id = $1
 	`, userID).Scan(
 		&user.ID, &user.ClerkID, &user.Email, &user.Plan,
 		&provider, &aiModel, &openaiKey, &geminiKey,
+		&displayName,
 		&user.CreatedAt, &user.UpdatedAt,
 	)
 	if err != nil {
@@ -135,6 +257,9 @@ func (s *AuthService) GetUser(userID uuid.UUID) (*models.User, error) {
 	}
 	user.AIProvider = provider.String
 	user.AIModel = aiModel.String
+	if displayName.Valid {
+		user.DisplayName = displayName.String
+	}
 	hasOpenAI := openaiKey.Valid && strings.TrimSpace(openaiKey.String) != ""
 	hasGemini := geminiKey.Valid && strings.TrimSpace(geminiKey.String) != ""
 	if user.AIProvider == "gemini" {

@@ -9,15 +9,16 @@ import (
 
 // User represents an authenticated platform user.
 type User struct {
-	ID         uuid.UUID `json:"id"`
-	ClerkID    string    `json:"clerk_id"`
-	Email      string    `json:"email"`
-	Plan       string    `json:"plan"`
-	AIProvider string    `json:"ai_provider,omitempty"`
-	AIModel    string    `json:"ai_model,omitempty"`
-	HasAPIKey  bool      `json:"has_api_key"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	ID          uuid.UUID `json:"id"`
+	ClerkID     string    `json:"clerk_id"`
+	Email       string    `json:"email"`
+	DisplayName string    `json:"display_name,omitempty"`
+	Plan        string    `json:"plan"`
+	AIProvider  string    `json:"ai_provider,omitempty"`
+	AIModel     string    `json:"ai_model,omitempty"`
+	HasAPIKey   bool      `json:"has_api_key"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 // UserSettings is the public settings response (API key masked).
@@ -130,6 +131,25 @@ type GenerateDocsRequest struct {
 type DevLoginRequest struct {
 	Email string `json:"email" binding:"required,email"`
 	Name  string `json:"name"`
+}
+
+// SignupRequest creates a new email/password account.
+type SignupRequest struct {
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,min=8"`
+	Name     string `json:"name"`
+}
+
+// LoginRequest authenticates with email/password.
+type LoginRequest struct {
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required"`
+}
+
+// AuthResponse returns a JWT and user after signup/login.
+type AuthResponse struct {
+	Token string `json:"token"`
+	User  User   `json:"user"`
 }
 
 // DevLoginResponse returns a development auth token.

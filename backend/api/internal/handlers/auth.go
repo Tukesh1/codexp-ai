@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/Tukesh1/codexp-ai/backend/api/internal/models"
 	"github.com/Tukesh1/codexp-ai/backend/api/internal/services"
@@ -32,6 +33,48 @@ func (h *AuthHandler) DevLogin(c *gin.Context) {
 	resp, err := h.authService.DevLogin(req.Email, req.Name)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
+// Signup creates an email/password account.
+func (h *AuthHandler) Signup(c *gin.Context) {
+	var req models.SignupRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Valid email and password (min 8 characters) are required"})
+		return
+	}
+
+	resp, err := h.authService.Signup(req.Email, req.Password, req.Name)
+	if err != nil {
+		status := http.StatusBadRequest
+		if strings.Contains(err.Error(), "already exists") {
+			status = http.StatusConflict
+		}
+		c.JSON(status, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, resp)
+}
+
+// Login authenticates with email/password.
+func (h *AuthHandler) Login(c *gin.Context) {
+	var req models.LoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email and password are required"})
+		return
+	}
+
+	resp, err := h.authService.Login(req.Email, req.Password)
+	if err != nil {
+		status := http.StatusUnauthorized
+		if strings.Contains(err.Error(), "no password") {
+			status = http.StatusBadRequest
+		}
+		c.JSON(status, gin.H{"error": err.Error()})
 		return
 	}
 

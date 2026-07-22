@@ -69,6 +69,8 @@ func runMigrations(db *sql.DB) error {
 		`ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_provider VARCHAR(50) DEFAULT 'openai';`,
 		`ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_model VARCHAR(100) DEFAULT 'gpt-4o-mini';`,
 		`ALTER TABLE users ADD COLUMN IF NOT EXISTS settings JSONB DEFAULT '{}';`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS display_name VARCHAR(255);`,
 		`
 		CREATE TABLE IF NOT EXISTS projects (
 			id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

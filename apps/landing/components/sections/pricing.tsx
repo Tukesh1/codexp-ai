@@ -1,5 +1,4 @@
-import Link from "next/link"
-import { APP_URL } from "@/config/site"
+import { getAppUrl } from "@/config/site"
 
 const plans = [
   {
@@ -67,8 +66,8 @@ export function Pricing() {
                   </li>
                 ))}
               </ul>
-              <Link
-                href={`${APP_URL}/projects/new`}
+              <a
+                href={`${getAppUrl()}/projects/new`}
                 className={`mt-10 block px-4 py-3.5 text-center text-base font-semibold transition ${
                   plan.highlight
                     ? "bg-[var(--fg)] text-[var(--inverse)] hover:opacity-85"
@@ -76,7 +75,7 @@ export function Pricing() {
                 }`}
               >
                 {plan.cta}
-              </Link>
+              </a>
             </div>
           ))}
         </div>

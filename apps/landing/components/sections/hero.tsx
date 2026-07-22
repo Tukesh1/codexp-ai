@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { APP_URL, GITHUB_URL } from "@/config/site"
+import { getAppUrl, GITHUB_URL } from "@/config/site"
 import { RepoCta } from "@/components/sections/repo-cta"
 
 const LENSES = ["architect", "security", "beginner", "reviewer"] as const
@@ -103,9 +103,9 @@ export function Hero() {
           </div>
 
           <div className="landing-rise landing-rise-delay-3 mt-6 flex items-center gap-5 font-[family-name:var(--font-mono)] text-xs tracking-wide text-[var(--fg-muted)]">
-            <Link href={`${APP_URL}/login`} className="transition hover:text-[var(--fg)]">
+            <a href={`${getAppUrl()}/login`} className="transition hover:text-[var(--fg)]">
               Sign in
-            </Link>
+            </a>
             <span className="text-[var(--line)]" aria-hidden>
               /
             </span>

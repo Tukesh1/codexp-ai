@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { APP_URL, GITHUB_URL } from "@/config/site"
+import { getAppUrl, GITHUB_URL } from "@/config/site"
 
 export function Footer() {
   return (
@@ -23,9 +23,9 @@ export function Footer() {
           <Link href={GITHUB_URL} className="hover:text-[var(--fg)]">
             GitHub
           </Link>
-          <Link href={`${APP_URL}/login`} className="hover:text-[var(--fg)]">
+          <a href={`${getAppUrl()}/login`} className="hover:text-[var(--fg)]">
             App
-          </Link>
+          </a>
         </nav>
       </div>
       <div className="border-t border-[var(--line)]">

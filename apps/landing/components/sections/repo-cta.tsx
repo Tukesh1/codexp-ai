@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { ArrowRight } from "lucide-react"
-import { APP_URL } from "@/config/site"
+import { getAppUrl } from "@/config/site"
 
 function parseGitHubRepo(input: string): { owner: string; repo: string; url: string } | null {
   const raw = input.trim().replace(/\.git$/i, "")
@@ -35,7 +35,7 @@ export function RepoCta() {
   function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!parsed) return
-    const dest = `${APP_URL}/projects/new?repo=${encodeURIComponent(parsed.url)}`
+    const dest = `${getAppUrl()}/projects/new?repo=${encodeURIComponent(parsed.url)}`
     window.location.href = dest
   }
 
